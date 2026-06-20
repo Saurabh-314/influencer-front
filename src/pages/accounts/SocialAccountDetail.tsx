@@ -4,7 +4,7 @@ import api from '@/api/axios';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-    Loader2, ArrowLeft, RefreshCw, Heart, MessageCircle, Info, Lock
+    Loader2, ArrowLeft, RefreshCw, Heart, MessageCircle, Info
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
