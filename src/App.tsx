@@ -16,7 +16,6 @@ import Settings from './pages/settings';
 
 const queryClient = new QueryClient();
 
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
