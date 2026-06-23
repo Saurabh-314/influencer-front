@@ -8,7 +8,8 @@ import {
     BarChart3,
     Users,
     Settings,
-    LogOut
+    LogOut,
+    ShieldCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const navItems = [
     { icon: BarChart3, label: 'Analytics', href: '/analytics' },
     { icon: Users, label: 'Accounts', href: '/accounts' },
     { icon: Settings, label: 'Settings', href: '/settings' },
+    { icon: ShieldCheck, label: 'Privacy Policy', href: '/privacy-policy' },
 ];
 
 export function Sidebar({ className }: SidebarProps) {

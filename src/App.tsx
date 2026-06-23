@@ -12,6 +12,7 @@ import Analytics from './pages/analytics';
 import Accounts from './pages/accounts';
 import SocialAccountDetail from './pages/accounts/SocialAccountDetail';
 import Settings from './pages/settings';
+import PrivacyPolicy from './pages/privacy-policy';
 
 
 const queryClient = new QueryClient();
@@ -24,7 +25,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-
             <Route path="/" element={<DashboardLayout children={<Navigate to="/dashboard" replace />} />} />
             <Route path="/dashboard" element={<DashboardLayout children={<Dashboard />} />} />
             <Route path="/campaigns" element={<DashboardLayout children={<Campaigns />} />} />
@@ -34,6 +34,8 @@ function App() {
             <Route path="/accounts" element={<DashboardLayout children={<Accounts />} />} />
             <Route path="/accounts/:id" element={<DashboardLayout children={<SocialAccountDetail />} />} />
             <Route path="/settings" element={<DashboardLayout children={<Settings />} />} />
+            <Route path="/privacy-policy" element={<DashboardLayout children={<PrivacyPolicy />} />} />
+
 
 
             {/* Admin Routes */}
