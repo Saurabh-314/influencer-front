@@ -1,73 +1,36 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import {
+    Activity,
     LayoutDashboard,
-    Target,
+    Megaphone,
     Trophy,
-    BarChart3,
+    LineChart,
     Users,
     Settings,
-    LogOut,
-    ShieldCheck
+    Shield,
 } from 'lucide-react';
+import PortalShell from './shared/PortalShell';
 
-interface SidebarProps {
-    className?: string;
-}
-
-const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: Target, label: 'Campaigns', href: '/campaigns' },
-    { icon: Trophy, label: 'Leaderboard', href: '/leaderboard' },
-    { icon: BarChart3, label: 'Analytics', href: '/analytics' },
-    { icon: Users, label: 'Accounts', href: '/accounts' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
-    { icon: ShieldCheck, label: 'Privacy Policy', href: '/privacy-policy' },
+const NAV_ITEMS = [
+    { key: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: '/campaigns', icon: Megaphone, label: 'Campaigns' },
+    { key: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { key: '/analytics', icon: LineChart, label: 'Analytics' },
+    { key: '/accounts', icon: Users, label: 'Accounts' },
+    { key: '/settings', icon: Settings, label: 'Settings' },
+    { key: '/privacy-policy', icon: Shield, label: 'Privacy Policy' },
 ];
 
-export function Sidebar({ className }: SidebarProps) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
-        <div className={cn("pb-12 border-r h-screen w-64 bg-card", className)}>
-            <div className="space-y-4 py-4">
-                <div className="px-3 py-2">
-                    <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                        Influencer
-                    </h2>
-                    <div className="space-y-1">
-                        {navItems.map((item) => (
-                            <NavLink
-                                key={item.href}
-                                to={item.href}
-                                className={({ isActive }) => cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors",
-                                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                                )}
-                            >
-                                <item.icon className="h-4 w-4" />
-                                {item.label}
-                            </NavLink>
-                        ))}
-                    </div>
-                </div>
-                <div className="px-3 py-2 absolute bottom-4 w-full">
-                    <button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 w-full transition-colors">
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-export default function Layout({ children }: { children: ReactNode }) {
-    return (
-        <div className="flex">
-            <Sidebar />
-            <main className="flex-1 p-8 h-screen overflow-y-auto bg-muted/20">
-                {children}
-            </main>
-        </div>
+        <PortalShell
+            headerTitle="Admin Workspace"
+            logoIcon={Activity}
+            logoIconClassName="text-[#87D8FF]"
+            title="Vusic One"
+            navItems={NAV_ITEMS}
+        >
+            {children}
+        </PortalShell>
     );
 }

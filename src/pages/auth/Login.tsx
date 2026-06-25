@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import api from '@/api/axios';
 import { Loader2 } from 'lucide-react';
+import { getRoleDashboardPath, getStoredUser, isAuthenticated } from '@/utils/auth';
 
 const loginSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -30,6 +31,13 @@ export default function Login() {
         resolver: zodResolver(loginSchema),
     });
 
+    useEffect(() => {
+        if (isAuthenticated()) {
+            const user = getStoredUser();
+            navigate(getRoleDashboardPath(user?.role), { replace: true });
+        }
+    }, [navigate]);
+
     const onSubmit = async (values: LoginFormValues) => {
         setIsLoading(true);
         setError(null);
@@ -41,9 +49,10 @@ export default function Login() {
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('user', JSON.stringify(user));
 
-            navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+            navigate(getRoleDashboardPath(user.role));
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error?.response?.data?.message || 'Something went wrong. Please try again.');
         } finally {
             setIsLoading(false);
         }

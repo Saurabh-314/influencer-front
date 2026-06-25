@@ -13,6 +13,13 @@ import Accounts from './pages/accounts';
 import SocialAccountDetail from './pages/accounts/SocialAccountDetail';
 import Settings from './pages/settings';
 import PrivacyPolicy from './pages/privacy-policy';
+import BrandLayout from './layouts/BrandLayout';
+import CreatorLayout from './layouts/CreatorLayout';
+import AdminLayout from './layouts/AdminLayout';
+import BrandCreateCampaign from './pages/brand/CreateCampaign';
+import CreatorDashboard from './pages/creator/Dashboard';
+import CreatorInsights from './pages/creator/Insights';
+import RoleRedirect from './components/auth/RoleRedirect';
 
 
 const queryClient = new QueryClient();
@@ -25,7 +32,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/" element={<DashboardLayout children={<Navigate to="/dashboard" replace />} />} />
+            <Route path="/" element={<RoleRedirect />} />
             <Route path="/dashboard" element={<DashboardLayout children={<Dashboard />} />} />
             <Route path="/campaigns" element={<DashboardLayout children={<Campaigns />} />} />
             <Route path="/campaigns/:id" element={<DashboardLayout children={<CampaignDetail />} />} />
@@ -38,8 +45,25 @@ function App() {
 
 
 
+            {/* Brand Routes */}
+            <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
+            <Route path="/brand/dashboard" element={<BrandLayout children={<div>Brand Overview</div>} />} />
+            <Route path="/brand/campaigns" element={<BrandLayout children={<BrandCreateCampaign />} />} />
+            <Route path="/brand/creators" element={<BrandLayout children={<div>Brand Creators</div>} />} />
+            <Route path="/brand/analytics" element={<BrandLayout children={<div>Brand Analytics</div>} />} />
+
+            {/* Creator Routes */}
+            <Route path="/creator" element={<CreatorLayout children={<Navigate to="/creator/dashboard" replace />} />} />
+            <Route path="/creator/dashboard" element={<CreatorLayout children={<CreatorDashboard />} />} />
+            <Route path="/creator/insights/:id" element={<CreatorLayout children={<CreatorInsights />} />} />
+            <Route path="/creator/campaigns" element={<CreatorLayout children={<div>Creator Campaigns</div>} />} />
+            <Route path="/creator/payments" element={<CreatorLayout children={<div>Creator Payments</div>} />} />
+            <Route path="/creator/messages" element={<CreatorLayout children={<div>Creator Messages</div>} />} />
+
             {/* Admin Routes */}
-            <Route path="/admin" element={<div>Admin Dashboard</div>} />
+            <Route path="/admin/dashboard" element={<AdminLayout children={<div>Admin Dashboard</div>} />} />
+            <Route path="/admin/users" element={<AdminLayout children={<div>Admin Users</div>} />} />
+            <Route path="/admin/settings" element={<AdminLayout children={<div>Admin Settings</div>} />} />
           </Routes>
         </BrowserRouter>
       </JotaiProvider>
