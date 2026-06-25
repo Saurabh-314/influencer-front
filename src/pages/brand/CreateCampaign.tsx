@@ -130,7 +130,7 @@ export default function CreateCampaign() {
       const response = await api.post("/campaigns", payload);
       if (response.data.success) {
         message.success("Campaign created successfully!");
-        navigate("/brand/dashboard");
+        navigate("/brand/campaigns");
       }
     } catch (error) {
       console.error("Error creating campaign:", error);
