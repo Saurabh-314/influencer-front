@@ -48,7 +48,8 @@ function App() {
             {/* Brand Routes */}
             <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
             <Route path="/brand/dashboard" element={<BrandLayout children={<div>Brand Overview</div>} />} />
-            <Route path="/brand/campaigns" element={<BrandLayout children={<Navigate to="/brand/campaigns" replace />} />} />
+            <Route path="/brand/campaigns" element={<BrandLayout children={<Campaigns />} />} />
+            <Route path="/brand/campaigns/:id" element={<BrandLayout children={<CampaignDetail />} />} />
             <Route path="/brand/creators" element={<BrandLayout children={<div>Brand Creators</div>} />} />
             <Route path="/brand/analytics" element={<BrandLayout children={<div>Brand Analytics</div>} />} />
 
