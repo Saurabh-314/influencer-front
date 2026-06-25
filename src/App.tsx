@@ -16,7 +16,7 @@ import PrivacyPolicy from './pages/privacy-policy';
 import BrandLayout from './layouts/BrandLayout';
 import CreatorLayout from './layouts/CreatorLayout';
 import AdminLayout from './layouts/AdminLayout';
-// import BrandCreateCampaign from './pages/brand/CreateCampaign';
+import BrandCreateCampaign from './pages/brand/CreateCampaign';
 import CreatorDashboard from './pages/creator/Dashboard';
 import CreatorInsights from './pages/creator/Insights';
 import RoleRedirect from './components/auth/RoleRedirect';
@@ -49,6 +49,7 @@ function App() {
             <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
             <Route path="/brand/dashboard" element={<BrandLayout children={<div>Brand Overview</div>} />} />
             <Route path="/brand/campaigns" element={<BrandLayout children={<Campaigns />} />} />
+            <Route path="/brand/campaigns/create" element={<BrandLayout children={<BrandCreateCampaign />} />} />
             <Route path="/brand/campaigns/:id" element={<BrandLayout children={<CampaignDetail />} />} />
             <Route path="/brand/creators" element={<BrandLayout children={<div>Brand Creators</div>} />} />
             <Route path="/brand/analytics" element={<BrandLayout children={<div>Brand Analytics</div>} />} />
