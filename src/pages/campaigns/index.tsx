@@ -4,23 +4,40 @@ import { Card, Button, Badge, Row, Col, Typography, Empty } from "antd";
 import {
   // TrophyOutlined,
   // CalendarOutlined,
-  ArrowRightOutlined,
+  //   ArrowRightOutlined,
   LoadingOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
+
+interface RankAllocation {
+  qty: number;
+  rank: number;
+  range: string;
+  payout: number;
+  color: string;
+}
 
 interface Campaign {
-  id: string;
+  id: number;
   title: string;
   description: string;
   campaign_type: string;
   reward_points: number;
+  brand_name: string;
+  brand_logo_url: string;
+  track_artwork_url: string;
+  total_budget: string;
+  bonus_target_views: string;
+  bonus_reward: string;
+  audience_gender: string;
+  audience_age: string;
+  status: string;
+  start_date: string;
   end_date: string;
-  created_at?: string;
-  participants_count?: number;
+  rank_allocations: RankAllocation[];
 }
 
 export default function Campaigns() {
@@ -33,6 +50,16 @@ export default function Campaigns() {
     },
   });
 
+  const totalCreators =
+    campaigns?.reduce(
+      (sum: number, item: Campaign) =>
+        sum +
+          item.rank_allocations?.reduce(
+            (sum: number, item: RankAllocation) => sum + item.qty,
+            0,
+          ) || 0,
+      0,
+    ) || 0;
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -67,96 +94,110 @@ export default function Campaigns() {
       <Row gutter={[32, 32]}>
         {campaigns?.map((campaign: Campaign) => (
           <Col key={campaign.id} xs={24} md={12} lg={8}>
-            <Card
-              className="h-full border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all rounded-3xl overflow-hidden group"
-              bodyStyle={{
-                padding: "28px",
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-5">
+            <Card className="flex flex-col h-full">
+              {/* Top */}
+              <div className="flex items-center justify-between mb-4">
                 <Badge
-                  count={campaign.campaign_type.replace("_", " ").toUpperCase()}
-                  style={{
-                    backgroundColor: "#eff6ff",
-                    color: "#2563eb",
-                    fontWeight: 700,
-                    border: "none",
-                  }}
+                  status={campaign.status === "active" ? "success" : "default"}
+                  text={campaign.status.toUpperCase()}
                 />
 
-                <div className="text-right">
-                  <div className="text-primary font-black text-xl">
-                    {campaign.reward_points}
-                  </div>
-                  <div className="text-xs text-gray-400 uppercase">
-                    Reward Points
-                  </div>
+                <div className="text-primary font-black text-xl">
+                  ₹{Number(campaign.total_budget).toLocaleString()}
                 </div>
               </div>
 
               {/* Title */}
-              <Title
-                level={4}
-                className="!m-0 !mb-3 !font-black line-clamp-2 group-hover:text-primary transition-colors"
-              >
+              <Title level={4} className="!m-0 !mb-2 !font-black">
                 {campaign.title}
               </Title>
 
-              {/* Description */}
-              <Paragraph
-                type="secondary"
-                className="line-clamp-3 text-sm min-h-[70px]"
-              >
-                {campaign.description}
-              </Paragraph>
+              <Text type="secondary">
+                {campaign.campaign_type.toUpperCase()} Campaign
+              </Text>
 
-              {/* Campaign Details */}
-              <div className="bg-gray-50 rounded-2xl p-4 mt-3 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Campaign ID</span>
-                  <span className="font-semibold">
-                    #{campaign.id.slice(0, 8)}
-                  </span>
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 my-5">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Budget</p>
+                  <p className="font-bold">
+                    ₹{Number(campaign.total_budget).toLocaleString()}
+                  </p>
                 </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Type</span>
-                  <span className="font-semibold capitalize">
-                    {campaign.campaign_type.replace("_", " ")}
-                  </span>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Creators</p>
+                  <p className="font-bold">{totalCreators}</p>
                 </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Ends On</span>
-                  <span className="font-semibold">
-                    {new Date(campaign.end_date).toLocaleDateString()}
-                  </span>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Bonus Reward</p>
+                  <p className="font-bold">₹{campaign.bonus_reward}</p>
                 </div>
 
-                {campaign.participants_count !== undefined && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Participants</span>
-                    <span className="font-semibold">
-                      {campaign.participants_count}
-                    </span>
-                  </div>
-                )}
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Target Views</p>
+                  <p className="font-bold">{campaign.bonus_target_views}</p>
+                </div>
               </div>
 
-              {/* Footer */}
+              {/* Audience */}
+              <div className="mb-4">
+                <Text className="text-xs text-gray-400 uppercase">
+                  Audience
+                </Text>
+
+                <div className="flex gap-2 mt-2">
+                  <Badge
+                    count={campaign.audience_gender}
+                    style={{
+                      backgroundColor: "#f3f4f6",
+                      color: "#374151",
+                    }}
+                  />
+
+                  <Badge
+                    count={campaign.audience_age}
+                    style={{
+                      backgroundColor: "#f3f4f6",
+                      color: "#374151",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Top Prize */}
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-3 mb-4">
+                <div className="text-xs text-gray-500">TOP REWARD</div>
+
+                <div className="font-black text-lg text-orange-600">
+                  ₹{campaign.rank_allocations?.[0]?.payout}
+                </div>
+
+                <div className="text-xs text-gray-500">
+                  {campaign.rank_allocations?.[0]?.range}
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="flex justify-between text-xs text-gray-500 mb-5">
+                <span>
+                  Starts: {new Date(campaign.start_date).toLocaleDateString()}
+                </span>
+
+                <span>
+                  Ends: {new Date(campaign.end_date).toLocaleDateString()}
+                </span>
+              </div>
+
               <Button
                 type="primary"
                 block
                 size="large"
+                className="mt-auto"
                 onClick={() => navigate(`/brand/campaigns/${campaign.id}`)}
-                className="mt-6 h-12 rounded-xl font-bold"
               >
                 View Details
-                <ArrowRightOutlined />
               </Button>
             </Card>
           </Col>
