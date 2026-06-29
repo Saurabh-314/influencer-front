@@ -1,14 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
 import {
   AtSign,
   ArrowRight,
   ArrowLeft,
-  UploadCloud,
   Globe,
   Trophy,
-  Image as ImageIcon,
   Music,
   Building2,
   IndianRupee,
@@ -20,11 +18,52 @@ import {
   Star,
 } from "lucide-react";
 import api from "@/api/axios";
+import { useWallet, formatCurrency } from "@/hooks/useWallet";
+import { Link } from "react-router-dom";
+import BrandLogoUploader from "@/components/brand/BrandLogoUploader";
+import TrackArtworkUploader from "@/components/brand/TrackArtworkUploader";
 
 export default function CreateCampaign() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const { data: wallet, isLoading: walletLoading } = useWallet();
+
+  const defaultRankAllocations = [
+    {
+      rank: 1,
+      range: "> 1M Followers",
+      payout: 5000,
+      qty: 2,
+      color: "text-rose-500 bg-rose-500/10",
+    },
+    {
+      rank: 2,
+      range: "100K - 1M",
+      payout: 1500,
+      qty: 5,
+      color: "text-orange-500 bg-orange-500/10",
+    },
+    {
+      rank: 3,
+      range: "10K - 100K",
+      payout: 500,
+      qty: 20,
+      color: "text-yellow-500 bg-yellow-500/10",
+    },
+    {
+      rank: 4,
+      range: "1K - 10K",
+      payout: 100,
+      qty: 50,
+      color: "text-blue-500 bg-blue-500/10",
+    },
+  ];
+
+  const defaultBonusReward = 10000;
+  const defaultBonusMaxCreators = 5;
+  const defaultBaseTotal = defaultRankAllocations.reduce((sum, r) => sum + r.payout * r.qty, 0);
+  const defaultTotalLiability = defaultBaseTotal + defaultBonusReward * defaultBonusMaxCreators;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -34,45 +73,16 @@ export default function CreateCampaign() {
     hashtags: "",
     description: "",
     brand_name: "",
-    brand_logo_url: "/placeholder-logo.png",
-    track_artwork_url: "/placeholder-artwork.png",
+    brand_logo_url: "",
+    track_artwork_url: "",
     bonus_target_views: "1M Views",
-    bonus_reward: 10000,
-    bonus_max_creators: 5,
+    bonus_reward: defaultBonusReward,
+    bonus_max_creators: defaultBonusMaxCreators,
     audience_gender: "Any",
     audience_age: "Any",
     specific_creators: "",
-    total_budget: 50000,
-    rank_allocations: [
-      {
-        rank: 1,
-        range: "> 1M Followers",
-        payout: 5000,
-        qty: 2,
-        color: "text-rose-500 bg-rose-500/10",
-      },
-      {
-        rank: 2,
-        range: "100K - 1M",
-        payout: 1500,
-        qty: 5,
-        color: "text-orange-500 bg-orange-500/10",
-      },
-      {
-        rank: 3,
-        range: "10K - 100K",
-        payout: 500,
-        qty: 20,
-        color: "text-yellow-500 bg-yellow-500/10",
-      },
-      {
-        rank: 4,
-        range: "1K - 10K",
-        payout: 100,
-        qty: 50,
-        color: "text-blue-500 bg-blue-500/10",
-      },
-    ],
+    total_budget: defaultTotalLiability,
+    rank_allocations: defaultRankAllocations,
   });
 
   const handleInputChange = (
@@ -117,24 +127,63 @@ export default function CreateCampaign() {
     (sum, r) => sum + r.qty,
     0,
   );
+  const walletBalance = Number(wallet?.balance ?? 0);
+  const hasEnoughWallet = walletBalance >= totalLiability;
+  const isOverBudget = totalLiability > Number(formData.total_budget);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      if (totalLiability > Number(prev.total_budget)) {
+        return { ...prev, total_budget: totalLiability };
+      }
+      return prev;
+    });
+  }, [totalLiability]);
+
+  const isLaunchDisabled =
+    loading ||
+    !formData.title.trim() ||
+    expectedReels === 0 ||
+    isOverBudget ||
+    (!walletLoading && !hasEnoughWallet);
+
+  const launchDisabledReason = !formData.title.trim()
+    ? "Enter a campaign title in step 1."
+    : expectedReels === 0
+      ? "Set at least one creator slot in rank allocations."
+      : isOverBudget
+        ? "Increase total budget to cover all allocations and bonus pool."
+        : !walletLoading && !hasEnoughWallet
+          ? `Add at least ${formatCurrency(totalLiability - walletBalance)} to your wallet.`
+          : null;
 
   const handleSubmit = async () => {
+    if (!hasEnoughWallet) {
+      message.error("Insufficient wallet balance. Please add funds before launching.");
+      return;
+    }
+    if (isOverBudget) {
+      message.error("Campaign budget is less than total liability. Increase budget or reduce allocations.");
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         ...formData,
+        total_budget: Math.max(Number(formData.total_budget), totalLiability),
         campaign_type: "reel",
         start_date: new Date(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       };
       const response = await api.post("/campaigns", payload);
       if (response.data.success) {
-        message.success("Campaign created successfully!");
+        message.success("Campaign created successfully! Budget locked from wallet.");
         navigate("/brand/campaigns");
       }
-    } catch (error) {
-      console.error("Error creating campaign:", error);
-      message.error("Failed to create campaign. Please try again.");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      message.error(err.response?.data?.message || "Failed to create campaign. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -302,19 +351,24 @@ export default function CreateCampaign() {
                   <label className="text-[11px] font-semibold text-gray-500 mb-2 block uppercase tracking-wider">
                     Brand Logo
                   </label>
-                  <div className="w-full h-11 border border-dashed border-gray-300 rounded-xl flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors gap-2">
-                    <UploadCloud size={14} /> Upload Logo
-                  </div>
+                  <BrandLogoUploader
+                    value={formData.brand_logo_url}
+                    onChange={(url) =>
+                      setFormData((prev) => ({ ...prev, brand_logo_url: url }))
+                    }
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-[11px] font-semibold text-gray-500 mb-2 block uppercase tracking-wider">
                   Track Artwork
                 </label>
-                <div className="w-full h-24 border-2 border-dashed border-gray-200 bg-gray-50/50 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-gray-500 hover:border-[#87D8FF]/50 cursor-pointer transition-colors">
-                  <ImageIcon size={20} className="mb-2 text-gray-400" />
-                  <span>Click or drag image to upload</span>
-                </div>
+                <TrackArtworkUploader
+                  value={formData.track_artwork_url}
+                  onChange={(url) =>
+                    setFormData((prev) => ({ ...prev, track_artwork_url: url }))
+                  }
+                />
               </div>
               <div className="bg-[#FFE98F]/20 border border-[#FFE98F] rounded-xl p-5">
                 <h4 className="text-xs font-semibold text-gray-900 mb-3 flex items-center gap-1.5">
@@ -402,21 +456,34 @@ export default function CreateCampaign() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col items-end w-full md:w-auto bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2">
-                Total Campaign Budget (₹)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <IndianRupee size={18} />
-                </span>
-                <input
-                  name="total_budget"
-                  type="number"
-                  value={formData.total_budget}
-                  onChange={handleInputChange}
-                  className="pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-2xl font-semibold text-gray-900 focus:outline-none focus:border-[#87D8FF] w-full md:w-56 text-right shadow-sm"
-                />
+            <div className="flex flex-col items-end w-full md:w-auto bg-gray-50 p-4 rounded-2xl border border-gray-100 gap-3">
+              {/* <div className="text-right">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Wallet Balance</p>
+                <p className={`text-lg font-semibold ${hasEnoughWallet ? 'text-emerald-600' : 'text-[#FF5A5F]'}`}>
+                  {formatCurrency(walletBalance)}
+                </p>
+                {!hasEnoughWallet && (
+                  <Link to="/brand/wallet" className="text-[10px] font-semibold text-[#87D8FF] hover:underline">
+                    Top up wallet →
+                  </Link>
+                )}
+              </div> */}
+              <div>
+                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2 block text-right">
+                  Total Campaign Budget (₹)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <IndianRupee size={18} />
+                  </span>
+                  <input
+                    name="total_budget"
+                    type="number"
+                    value={formData.total_budget}
+                    onChange={handleInputChange}
+                    className="pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-2xl font-semibold text-gray-900 focus:outline-none focus:border-[#87D8FF] w-full md:w-56 text-right shadow-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -642,18 +709,20 @@ export default function CreateCampaign() {
                   </div>
                   <button
                     onClick={handleSubmit}
-                    disabled={
-                      loading ||
-                    //   totalLiability > Number(formData.total_budget) ||
-                      !formData.title ||
-                      expectedReels === 0
-                    }
-                    // className={`w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 flex justify-center items-center gap-2 ${loading || totalLiability > Number(formData.total_budget) || !formData.title || expectedReels === 0 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#FF5A5F] text-white hover:bg-[#ff464b] hover:shadow-lg hover:scale-[1.02]"}`}
-                    className={`w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 flex justify-center items-center gap-2 bg-[#FF5A5F] text-white hover:bg-[#ff464b] hover:shadow-lg hover:scale-[1.02]`}
+                    disabled={isLaunchDisabled}
+                    className={`w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 flex justify-center items-center gap-2 ${isLaunchDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#FF5A5F] text-white hover:bg-[#ff464b] hover:shadow-lg hover:scale-[1.02]"}`}
                   >
                     {loading ? "Launching..." : "Launch Campaign"}{" "}
                     <Megaphone size={16} />
                   </button>
+                  {isLaunchDisabled && launchDisabledReason && (
+                    <p className="text-xs text-center text-[#FF5A5F] mt-2 font-medium">
+                      {launchDisabledReason}
+                      {!hasEnoughWallet && !walletLoading && (
+                        <> <Link to="/brand/wallet" className="text-[#87D8FF] hover:underline">Top up wallet</Link></>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -17,7 +17,9 @@ import BrandLayout from './layouts/BrandLayout';
 import CreatorLayout from './layouts/CreatorLayout';
 import AdminLayout from './layouts/AdminLayout';
 import BrandCreateCampaign from './pages/brand/CreateCampaign';
+import BrandWallet from './pages/brand/Wallet';
 import CreatorDashboard from './pages/creator/Dashboard';
+import CreatorPayments from './pages/creator/Payments';
 import CreatorInsights from './pages/creator/Insights';
 import RoleRedirect from './components/auth/RoleRedirect';
 
@@ -51,6 +53,7 @@ function App() {
             <Route path="/brand/campaigns" element={<BrandLayout children={<Campaigns />} />} />
             <Route path="/brand/campaigns/create" element={<BrandLayout children={<BrandCreateCampaign />} />} />
             <Route path="/brand/campaigns/:id" element={<BrandLayout children={<CampaignDetail />} />} />
+            <Route path="/brand/wallet" element={<BrandLayout children={<BrandWallet />} />} />
             <Route path="/brand/creators" element={<BrandLayout children={<div>Brand Creators</div>} />} />
             <Route path="/brand/analytics" element={<BrandLayout children={<div>Brand Analytics</div>} />} />
 
@@ -59,7 +62,7 @@ function App() {
             <Route path="/creator/dashboard" element={<CreatorLayout children={<CreatorDashboard />} />} />
             <Route path="/creator/insights/:id" element={<CreatorLayout children={<CreatorInsights />} />} />
             <Route path="/creator/campaigns" element={<CreatorLayout children={<div>Creator Campaigns</div>} />} />
-            <Route path="/creator/payments" element={<CreatorLayout children={<div>Creator Payments</div>} />} />
+            <Route path="/creator/payments" element={<CreatorLayout children={<CreatorPayments />} />} />
             <Route path="/creator/messages" element={<CreatorLayout children={<div>Creator Messages</div>} />} />
 
             {/* Admin Routes */}

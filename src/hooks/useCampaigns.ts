@@ -29,6 +29,7 @@ export interface CampaignSubmission {
     id: number;
     campaign_id: number;
     views: number;
+    payout_amount?: number;
     status: 'pending' | 'approved' | 'rejected';
     approved_at?: string;
     createdAt: string;
@@ -74,7 +75,8 @@ export function useMySubmissions() {
 export interface CreatorEarnings {
     totalEarned: number;
     balance: number;
-    userRank: number;
+    pendingBalance: number;
+    lockedBalance?: number;
 }
 
 export function useCreatorEarnings(enabled = true) {

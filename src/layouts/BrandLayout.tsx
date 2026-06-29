@@ -5,12 +5,14 @@ import {
     Megaphone,
     Users,
     LineChart,
+    Wallet,
 } from 'lucide-react';
 import PortalShell from './shared/PortalShell';
 
 const NAV_ITEMS = [
     { key: '/brand/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { key: '/brand/campaigns', icon: Megaphone, label: 'Campaigns' },
+    { key: '/brand/wallet', icon: Wallet, label: 'Wallet' },
     { key: '/brand/creators', icon: Users, label: 'Creators' },
     { key: '/brand/analytics', icon: LineChart, label: 'Analytics' },
 ];

@@ -26,6 +26,7 @@ import {
     type Campaign,
 } from '@/hooks/useCampaigns';
 import { computeReelsStats, formatCount, getVusicRank } from '@/utils/creator';
+import { resolveAssetUrl } from '@/utils/image';
 
 type SelectedGig = Campaign & { payout: number; color: string };
 
@@ -131,6 +132,7 @@ export default function CreatorDashboard() {
 
     const totalEarned = earnings?.totalEarned ?? 0;
     const balance = earnings?.balance ?? 0;
+    const pendingBalance = earnings?.pendingBalance ?? 0;
 
     const formatSubmissionDate = (dateStr: string) =>
         new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -205,6 +207,11 @@ export default function CreatorDashboard() {
                                     <span className="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100">
                                         {earningsLoading ? '...' : `₹${balance.toLocaleString()}`}
                                     </span>
+                                    {!earningsLoading && pendingBalance > 0 && (
+                                        <span className="text-xs font-medium text-amber-600">
+                                            (+₹{pendingBalance.toLocaleString()} pending)
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -256,7 +263,7 @@ export default function CreatorDashboard() {
                                         >
                                             {campaign.track_artwork_url ? (
                                                 <img
-                                                    src={campaign.track_artwork_url}
+                                                    src={resolveAssetUrl(campaign.track_artwork_url)}
                                                     alt={campaign.title}
                                                     className="w-14 h-14 rounded-xl object-cover shadow-inner"
                                                 />
@@ -300,7 +307,7 @@ export default function CreatorDashboard() {
                                 <p className="text-sm text-gray-500 px-4 py-6 text-center">No campaigns completed yet.</p>
                             ) : (
                                 submissions.map((submission, idx) => {
-                                    const earned = getPayoutForRank(submission.campaign, rank.rank);
+                                    const earned = submission.payout_amount ?? getPayoutForRank(submission.campaign, rank.rank);
                                     const date = formatSubmissionDate(submission.approved_at ?? submission.createdAt);
                                     return (
                                         <div
@@ -353,7 +360,7 @@ export default function CreatorDashboard() {
                             <div className={`absolute inset-0 ${selectedGig.color} opacity-20`} />
                             {selectedGig.track_artwork_url ? (
                                 <img
-                                    src={selectedGig.track_artwork_url}
+                                    src={resolveAssetUrl(selectedGig.track_artwork_url)}
                                     alt={selectedGig.title}
                                     className="w-24 h-24 rounded-2xl shadow-lg object-cover z-10 transform -rotate-6"
                                 />
