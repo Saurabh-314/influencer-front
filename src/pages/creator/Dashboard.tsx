@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Instagram,
     ArrowRight,
@@ -15,17 +15,20 @@ import {
     Link2,
     Video,
     Loader2,
+    Clock,
 } from 'lucide-react';
 import { useConnectInstagram, useInstagramAccount, useSyncAccount } from '@/hooks/useSocialAccounts';
 import {
     useCampaigns,
     useMySubmissions,
     useCreatorEarnings,
+    useApplyCampaign,
     getPayoutForRank,
     getCampaignColor,
     type Campaign,
+    type CampaignSubmission,
 } from '@/hooks/useCampaigns';
-import { computeReelsStats, formatCount, getVusicRank } from '@/utils/creator';
+import { formatCount, getVusicRank } from '@/utils/creator';
 import { resolveAssetUrl } from '@/utils/image';
 
 type SelectedGig = Campaign & { payout: number; color: string };
@@ -40,11 +43,14 @@ function StatItem({ label, value, color }: { label: string; value: number; color
 }
 
 export default function CreatorDashboard() {
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [selectedGig, setSelectedGig] = useState<SelectedGig | null>(null);
+    const [applyError, setApplyError] = useState('');
 
     const { instagram, isLoading: accountsLoading } = useInstagramAccount();
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('creator');
+    const { mutate: applyCampaign, isPending: isApplying } = useApplyCampaign();
     const { data: syncData, isLoading: syncLoading } = useSyncAccount(instagram?.id);
     const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
     const { data: submissions, isLoading: submissionsLoading } = useMySubmissions();
@@ -59,8 +65,18 @@ export default function CreatorDashboard() {
         setSearchParams(searchParams, { replace: true });
     };
 
-    const submittedCampaignIds = useMemo(
+    const participatedCampaignIds = useMemo(
         () => new Set(submissions?.map((s) => s.campaign_id) ?? []),
+        [submissions],
+    );
+
+    const inProgressSubmissions = useMemo(
+        () => submissions?.filter((s) => s.status === 'applied') ?? [],
+        [submissions],
+    );
+
+    const completedSubmissions = useMemo(
+        () => submissions?.filter((s) => s.status !== 'applied') ?? [],
         [submissions],
     );
 
@@ -121,14 +137,74 @@ export default function CreatorDashboard() {
     const followers = profile?.followers_count ?? instagram.followers_count ?? 0;
     const engagement = syncData?.engagement_rate ?? instagram.engagement_rate ?? 0;
     const rank = getVusicRank(followers);
-    const reelsStats = syncData?.media ? computeReelsStats(syncData.media) : { total: 0, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0 };
+    const reelsStats = syncData?.reels_stats ?? { total: 0, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0 };
     const avatar =
         profile?.profile_picture_url ||
         instagram.profile_image ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(instagram.display_name || instagram.username)}&background=87D8FF&color=fff`;
     const displayName = profile?.name || instagram.display_name || instagram.username;
 
-    const availableCampaigns = campaigns?.filter((c) => !submittedCampaignIds.has(c.id)) ?? [];
+    const availableCampaigns = campaigns?.filter((c) => !participatedCampaignIds.has(c.id)) ?? [];
+
+    const handleApply = (gig: SelectedGig) => {
+        if (!instagram) return;
+        setApplyError('');
+        applyCampaign(
+            { campaign_id: gig.id, social_account_id: Number(instagram.id) },
+            {
+                onSuccess: () => {
+                    if (gig.spotify_link) {
+                        window.open(gig.spotify_link, '_blank');
+                    }
+                    setSelectedGig(null);
+                    navigate(`/creator/campaigns/${gig.id}`);
+                },
+                onError: (err: { response?: { data?: { message?: string } } }) => {
+                    setApplyError(err.response?.data?.message || 'Failed to apply');
+                },
+            },
+        );
+    };
+
+    const renderCampaignRow = (campaign: Campaign, payout: number, color: string, onClick: () => void) => (
+        <div
+            key={campaign.id}
+            onClick={onClick}
+            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-4 hover:border-[#87D8FF] hover:shadow-sm transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
+        >
+            {campaign.track_artwork_url ? (
+                <img
+                    src={resolveAssetUrl(campaign.track_artwork_url)}
+                    alt={campaign.title}
+                    className="w-14 h-14 rounded-xl object-cover shadow-inner"
+                />
+            ) : (
+                <div className={`w-14 h-14 rounded-xl ${color} flex items-center justify-center shadow-inner`}>
+                    <Music size={20} className="text-white opacity-80" />
+                </div>
+            )}
+            <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm text-gray-900 truncate">{campaign.title}</h4>
+                <p className="text-xs font-medium text-gray-500 truncate">
+                    {campaign.brand_name || 'Brand'} • {campaign.genre || campaign.campaign_type}
+                </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Payout</p>
+                <p className="text-sm font-semibold text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 group-hover:bg-[#87D8FF]/10 transition-colors">
+                    ₹{payout.toLocaleString()}
+                </p>
+            </div>
+        </div>
+    );
+
+    const renderInProgressRow = (submission: CampaignSubmission) => {
+        const campaign = submission.campaign;
+        if (!campaign) return null;
+        const payout = getPayoutForRank(campaign, rank.rank);
+        const color = getCampaignColor(campaign, rank.rank);
+        return renderCampaignRow(campaign, payout, color, () => navigate(`/creator/campaigns/${campaign.id}`));
+    };
 
     const totalEarned = earnings?.totalEarned ?? 0;
     const balance = earnings?.balance ?? 0;
@@ -255,42 +331,21 @@ export default function CreatorDashboard() {
                                 availableCampaigns.map((campaign) => {
                                     const payout = getPayoutForRank(campaign, rank.rank);
                                     const color = getCampaignColor(campaign, rank.rank);
-                                    return (
-                                        <div
-                                            key={campaign.id}
-                                            onClick={() => setSelectedGig({ ...campaign, payout, color })}
-                                            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-4 hover:border-[#87D8FF] hover:shadow-sm transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
-                                        >
-                                            {campaign.track_artwork_url ? (
-                                                <img
-                                                    src={resolveAssetUrl(campaign.track_artwork_url)}
-                                                    alt={campaign.title}
-                                                    className="w-14 h-14 rounded-xl object-cover shadow-inner"
-                                                />
-                                            ) : (
-                                                <div className={`w-14 h-14 rounded-xl ${color} flex items-center justify-center shadow-inner`}>
-                                                    <Music size={20} className="text-white opacity-80" />
-                                                </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-semibold text-sm text-gray-900 truncate">{campaign.title}</h4>
-                                                <p className="text-xs font-medium text-gray-500 truncate">
-                                                    {campaign.brand_name || 'Brand'} • {campaign.genre || campaign.campaign_type}
-                                                </p>
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
-                                                    Payout
-                                                </p>
-                                                <p className="text-sm font-semibold text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 group-hover:bg-[#87D8FF]/10 transition-colors">
-                                                    ₹{payout.toLocaleString()}
-                                                </p>
-                                            </div>
-                                        </div>
+                                    return renderCampaignRow(campaign, payout, color, () =>
+                                        setSelectedGig({ ...campaign, payout, color }),
                                     );
                                 })
                             )}
                         </div>
+
+                        {inProgressSubmissions.length > 0 && (
+                            <div className="space-y-3 pt-2">
+                                <h3 className="text-sm font-semibold tracking-tight text-gray-900 flex items-center gap-2 px-2">
+                                    <Clock size={16} className="text-amber-500" /> In Progress
+                                </h3>
+                                {inProgressSubmissions.map(renderInProgressRow)}
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-4">
@@ -303,17 +358,19 @@ export default function CreatorDashboard() {
                                 <div className="flex items-center justify-center py-8">
                                     <Loader2 className="h-6 w-6 animate-spin text-[#87D8FF]" />
                                 </div>
-                            ) : !submissions?.length ? (
+                            ) : !completedSubmissions.length ? (
                                 <p className="text-sm text-gray-500 px-4 py-6 text-center">No campaigns completed yet.</p>
                             ) : (
-                                submissions.map((submission, idx) => {
+                                completedSubmissions.map((submission, idx) => {
                                     const earned = submission.payout_amount ?? getPayoutForRank(submission.campaign, rank.rank);
-                                    const date = formatSubmissionDate(submission.approved_at ?? submission.createdAt);
+                                    const date = formatSubmissionDate(
+                                        submission.submitted_at ?? submission.approved_at ?? submission.createdAt,
+                                    );
                                     return (
                                         <div
                                             key={submission.id}
                                             className={`p-4 flex items-center justify-between ${
-                                                idx !== submissions.length - 1 ? 'border-b border-gray-50' : ''
+                                                idx !== completedSubmissions.length - 1 ? 'border-b border-gray-50' : ''
                                             }`}
                                         >
                                             <div className="flex items-center gap-3">
@@ -438,16 +495,24 @@ export default function CreatorDashboard() {
                                 )}
                             </div>
 
+                            {applyError && (
+                                <p className="text-sm text-[#FF5A5F] bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
+                                    {applyError}
+                                </p>
+                            )}
+
                             <button
-                                onClick={() => {
-                                    if (selectedGig.spotify_link) {
-                                        window.open(selectedGig.spotify_link, '_blank');
-                                    }
-                                    setSelectedGig(null);
-                                }}
-                                className="w-full py-4 bg-[#FF5A5F] hover:bg-[#ff464b] text-white text-sm font-semibold rounded-xl shadow-lg shadow-[#FF5A5F]/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
+                                onClick={() => handleApply(selectedGig)}
+                                disabled={isApplying || !instagram}
+                                className="w-full py-4 bg-[#FF5A5F] hover:bg-[#ff464b] disabled:opacity-60 text-white text-sm font-semibold rounded-xl shadow-lg shadow-[#FF5A5F]/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
                             >
-                                Apply & Claim Audio <PlayCircle size={18} />
+                                {isApplying ? (
+                                    <Loader2 size={18} className="animate-spin" />
+                                ) : (
+                                    <>
+                                        Apply & Claim Audio <PlayCircle size={18} />
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>

@@ -12,6 +12,15 @@ export type ReelsStats = {
     '>10m': number;
 };
 
+export type InstagramMedia = {
+    id?: string;
+    media_type?: string;
+    media_product_type?: string;
+    like_count?: number;
+    comments_count?: number;
+    insights?: { name: string; values: { value: number }[] }[];
+};
+
 export type SocialAccountRecord = {
     id: string;
     platform: string;
@@ -37,14 +46,20 @@ export function getVusicRank(followers: number): VusicRank {
     return { rank: 4, label: 'Nano' };
 }
 
-export function getMediaViews(media: { like_count?: number; insights?: { name: string; values: { value: number }[] }[] }): number {
-    const videoViews = media.insights?.find((i) => i.name === 'video_views')?.values?.[0]?.value;
-    if (videoViews) return videoViews;
+export function getMediaViews(media: InstagramMedia): number {
+    const viewsInsight = media.insights?.find(
+        (i) => i.name === 'views' || i.name === 'video_views' || i.name === 'plays',
+    );
+    if (viewsInsight?.values?.[0]?.value != null) {
+        return viewsInsight.values[0].value;
+    }
     return (media.like_count || 0) * 10;
 }
 
-export function computeReelsStats(media: { media_type?: string; like_count?: number; insights?: { name: string; values: { value: number }[] }[] }[]): ReelsStats {
-    const reels = media.filter((m) => m.media_type === 'REELS' || m.media_type === 'VIDEO');
+export function computeReelsStats(media: InstagramMedia[]): ReelsStats {
+    const reels = media.filter(
+        (m) => m.media_product_type === 'REELS' || m.media_type === 'REELS' || m.media_type === 'VIDEO',
+    );
     const stats: ReelsStats = { total: reels.length, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0 };
 
     reels.forEach((item) => {

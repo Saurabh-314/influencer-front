@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/api/axios';
 
 export interface RankAllocation {
@@ -30,7 +30,10 @@ export interface CampaignSubmission {
     campaign_id: number;
     views: number;
     payout_amount?: number;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'applied' | 'pending' | 'approved' | 'rejected';
+    submission_url?: string;
+    applied_at?: string;
+    submitted_at?: string;
     approved_at?: string;
     createdAt: string;
     campaign?: Campaign;
@@ -62,12 +65,51 @@ export function useCampaigns() {
     });
 }
 
+export function useCampaign(id: number | string | undefined) {
+    return useQuery({
+        queryKey: ['campaign', id],
+        queryFn: async () => {
+            const res = await api.get(`/campaigns/${id}`);
+            return res.data.data as Campaign;
+        },
+        enabled: !!id,
+    });
+}
+
 export function useMySubmissions() {
     return useQuery({
         queryKey: ['my-submissions'],
         queryFn: async () => {
             const res = await api.get('/submissions/mine');
             return res.data.data as CampaignSubmission[];
+        },
+    });
+}
+
+export function useApplyCampaign() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (payload: { campaign_id: number; social_account_id: number }) => {
+            const res = await api.post('/submissions/apply', payload);
+            return res.data.data as CampaignSubmission;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-submissions'] });
+        },
+    });
+}
+
+export function useSubmitCampaignUrl() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (payload: { submissionId: number; submission_url: string }) => {
+            const res = await api.patch(`/submissions/${payload.submissionId}/submit`, {
+                submission_url: payload.submission_url,
+            });
+            return res.data.data as CampaignSubmission;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-submissions'] });
         },
     });
 }

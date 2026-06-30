@@ -17,9 +17,13 @@ import BrandLayout from './layouts/BrandLayout';
 import CreatorLayout from './layouts/CreatorLayout';
 import AdminLayout from './layouts/AdminLayout';
 import BrandCreateCampaign from './pages/brand/CreateCampaign';
+import BrandCampaigns from './pages/brand/Campaigns';
+import BrandOverview from './pages/brand/Overview';
 import CampaignCheckout from './pages/brand/CampaignCheckout';
 import BrandWallet from './pages/brand/Wallet';
 import CreatorDashboard from './pages/creator/Dashboard';
+import CreatorCampaign from './pages/creator/Campaign';
+import CreatorCampaigns from './pages/creator/Campaigns';
 import CreatorPayments from './pages/creator/Payments';
 import CreatorInsights from './pages/creator/Insights';
 import RoleRedirect from './components/auth/RoleRedirect';
@@ -50,8 +54,8 @@ function App() {
 
             {/* Brand Routes */}
             <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
-            <Route path="/brand/dashboard" element={<BrandLayout children={<div>Brand Overview</div>} />} />
-            <Route path="/brand/campaigns" element={<BrandLayout children={<Campaigns />} />} />
+            <Route path="/brand/dashboard" element={<BrandLayout children={<BrandOverview />} />} />
+            <Route path="/brand/campaigns" element={<BrandLayout children={<BrandCampaigns />} />} />
             <Route path="/brand/campaigns/create" element={<BrandLayout children={<BrandCreateCampaign />} />} />
             <Route path="/brand/campaigns/create/checkout" element={<BrandLayout children={<CampaignCheckout />} />} />
             <Route path="/brand/campaigns/:id" element={<BrandLayout children={<CampaignDetail />} />} />
@@ -63,7 +67,8 @@ function App() {
             <Route path="/creator" element={<CreatorLayout children={<Navigate to="/creator/dashboard" replace />} />} />
             <Route path="/creator/dashboard" element={<CreatorLayout children={<CreatorDashboard />} />} />
             <Route path="/creator/insights/:id" element={<CreatorLayout children={<CreatorInsights />} />} />
-            <Route path="/creator/campaigns" element={<CreatorLayout children={<div>Creator Campaigns</div>} />} />
+            <Route path="/creator/campaigns/:id" element={<CreatorLayout children={<CreatorCampaign />} />} />
+            <Route path="/creator/campaigns" element={<CreatorLayout children={<CreatorCampaigns />} />} />
             <Route path="/creator/payments" element={<CreatorLayout children={<CreatorPayments />} />} />
             <Route path="/creator/messages" element={<CreatorLayout children={<div>Creator Messages</div>} />} />
 

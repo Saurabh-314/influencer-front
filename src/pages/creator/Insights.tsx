@@ -13,7 +13,7 @@ import {
     Video,
 } from 'lucide-react';
 import api from '@/api/axios';
-import { computeReelsStats, formatCount, getVusicRank } from '@/utils/creator';
+import { formatCount, getVusicRank, type ReelsStats } from '@/utils/creator';
 
 function StatItem({ label, value, color }: { label: string; value: number | string; color: string }) {
     return (
@@ -59,9 +59,11 @@ export default function CreatorInsights() {
         );
     }
 
-    const { profile, media, engagement_rate, influencer_score, adv_stats } = syncData;
+    const { profile, top_posts, engagement_rate, influencer_score, adv_stats } = syncData;
     const rank = getVusicRank(profile.followers_count || 0);
-    const reelsStats = computeReelsStats(media || []);
+    const reelsStats: ReelsStats = syncData.reels_stats ?? {
+        total: 0, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0,
+    };
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -176,41 +178,53 @@ export default function CreatorInsights() {
                 </div>
             )}
 
-            <div className="space-y-4">
-                <h3 className="text-sm font-semibold tracking-tight text-gray-900 px-2">Top Posts</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {media?.slice(0, 8).map((item: {
-                        id: string;
-                        media_url?: string;
-                        like_count?: number;
-                        comments_count?: number;
-                        timestamp?: string;
-                    }) => (
-                        <div key={item.id} className="aspect-square relative group overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
-                            <img
-                                src={item.media_url}
-                                alt=""
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                                <div className="flex justify-between text-white font-semibold text-xs">
-                                    <span className="flex items-center gap-1">
-                                        <Heart size={12} /> {item.like_count}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <MessageCircle size={12} /> {item.comments_count}
-                                    </span>
-                                </div>
-                                {item.timestamp && (
-                                    <p className="text-[10px] text-gray-300 mt-1 font-medium">
-                                        {new Date(item.timestamp).toLocaleDateString()}
-                                    </p>
+            {top_posts?.length > 0 && (
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold tracking-tight text-gray-900 px-2">Top Reels</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {top_posts.map((item: {
+                            id: string;
+                            media_url?: string;
+                            like_count?: number;
+                            comments_count?: number;
+                            views?: number;
+                            timestamp?: string;
+                        }) => (
+                            <div key={item.id} className="aspect-square relative group overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+                                {item.media_url ? (
+                                    <img
+                                        src={item.media_url}
+                                        alt=""
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-100" />
                                 )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                    <div className="flex justify-between text-white font-semibold text-xs">
+                                        <span className="flex items-center gap-1">
+                                            <Heart size={12} /> {formatCount(item.like_count ?? 0)}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <MessageCircle size={12} /> {item.comments_count ?? 0}
+                                        </span>
+                                    </div>
+                                    {item.views != null && (
+                                        <p className="text-[10px] text-gray-200 mt-1 font-medium">
+                                            {formatCount(item.views)} views
+                                        </p>
+                                    )}
+                                    {item.timestamp && (
+                                        <p className="text-[10px] text-gray-300 mt-0.5 font-medium">
+                                            {new Date(item.timestamp).toLocaleDateString()}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
