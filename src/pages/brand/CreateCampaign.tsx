@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { message } from "antd";
 import {
   AtSign,
@@ -11,23 +11,21 @@ import {
   Building2,
   IndianRupee,
   Link2,
-  Megaphone,
   Users,
   Activity,
   TrendingUp,
   Star,
 } from "lucide-react";
-import api from "@/api/axios";
-import { useWallet, formatCurrency } from "@/hooks/useWallet";
-import { Link } from "react-router-dom";
 import BrandLogoUploader from "@/components/brand/BrandLogoUploader";
 import TrackArtworkUploader from "@/components/brand/TrackArtworkUploader";
+import type { CampaignCheckoutState, CampaignFormData } from "@/types/campaign";
+import { saveCampaignCheckoutState } from "@/utils/campaignCheckoutStorage";
 
 export default function CreateCampaign() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const { data: wallet, isLoading: walletLoading } = useWallet();
+  const location = useLocation();
+  const restoredState = location.state as CampaignCheckoutState | null;
+  const [step, setStep] = useState(restoredState ? 2 : 1);
 
   const defaultRankAllocations = [
     {
@@ -65,25 +63,27 @@ export default function CreateCampaign() {
   const defaultBaseTotal = defaultRankAllocations.reduce((sum, r) => sum + r.payout * r.qty, 0);
   const defaultTotalLiability = defaultBaseTotal + defaultBonusReward * defaultBonusMaxCreators;
 
-  const [formData, setFormData] = useState({
-    title: "",
-    spotify_link: "",
-    genre: "",
-    required_tags: "",
-    hashtags: "",
-    description: "",
-    brand_name: "",
-    brand_logo_url: "",
-    track_artwork_url: "",
-    bonus_target_views: "1M Views",
-    bonus_reward: defaultBonusReward,
-    bonus_max_creators: defaultBonusMaxCreators,
-    audience_gender: "Any",
-    audience_age: "Any",
-    specific_creators: "",
-    total_budget: defaultTotalLiability,
-    rank_allocations: defaultRankAllocations,
-  });
+  const [formData, setFormData] = useState<CampaignFormData>(
+    restoredState?.formData ?? {
+      title: "",
+      spotify_link: "",
+      genre: "",
+      required_tags: "",
+      hashtags: "",
+      description: "",
+      brand_name: "",
+      brand_logo_url: "",
+      track_artwork_url: "",
+      bonus_target_views: "1M Views",
+      bonus_reward: defaultBonusReward,
+      bonus_max_creators: defaultBonusMaxCreators,
+      audience_gender: "Any",
+      audience_age: "Any",
+      specific_creators: "",
+      total_budget: defaultTotalLiability,
+      rank_allocations: defaultRankAllocations,
+    },
+  );
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -127,9 +127,6 @@ export default function CreateCampaign() {
     (sum, r) => sum + r.qty,
     0,
   );
-  const walletBalance = Number(wallet?.balance ?? 0);
-  const hasEnoughWallet = walletBalance >= totalLiability;
-  const isOverBudget = totalLiability > Number(formData.total_budget);
 
   useEffect(() => {
     setFormData((prev) => {
@@ -140,53 +137,28 @@ export default function CreateCampaign() {
     });
   }, [totalLiability]);
 
-  const isLaunchDisabled =
-    loading ||
-    !formData.title.trim() ||
-    expectedReels === 0 ||
-    isOverBudget ||
-    (!walletLoading && !hasEnoughWallet);
-
-  const launchDisabledReason = !formData.title.trim()
-    ? "Enter a campaign title in step 1."
-    : expectedReels === 0
-      ? "Set at least one creator slot in rank allocations."
-      : isOverBudget
-        ? "Increase total budget to cover all allocations and bonus pool."
-        : !walletLoading && !hasEnoughWallet
-          ? `Add at least ${formatCurrency(totalLiability - walletBalance)} to your wallet.`
-          : null;
-
-  const handleSubmit = async () => {
-    if (!hasEnoughWallet) {
-      message.error("Insufficient wallet balance. Please add funds before launching.");
-      return;
-    }
-    if (isOverBudget) {
-      message.error("Campaign budget is less than total liability. Increase budget or reduce allocations.");
+  const handleProceedToCheckout = () => {
+    if (!formData.title.trim()) {
+      message.error("Enter a campaign title in step 1 before proceeding to payment.");
       return;
     }
 
-    setLoading(true);
-    try {
-      const payload = {
+    const syncedBudget = Math.max(Number(formData.total_budget) || 0, totalLiability);
+    const checkoutState = {
+      formData: {
         ...formData,
-        total_budget: Math.max(Number(formData.total_budget), totalLiability),
-        campaign_type: "reel",
-        start_date: new Date(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      };
-      const response = await api.post("/campaigns", payload);
-      if (response.data.success) {
-        message.success("Campaign created successfully! Budget locked from wallet.");
-        navigate("/brand/campaigns");
-      }
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      message.error(err.response?.data?.message || "Failed to create campaign. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+        total_budget: syncedBudget,
+      },
+      summary: {
+        totalLiability,
+        baseAllocationsTotal,
+        bonusPoolTotal,
+        expectedReels,
+      },
+    } satisfies CampaignCheckoutState;
+
+    saveCampaignCheckoutState(checkoutState);
+    navigate("/brand/campaigns/create/checkout", { state: checkoutState });
   };
 
   return (
@@ -708,21 +680,15 @@ export default function CreateCampaign() {
                     </div>
                   </div>
                   <button
-                    onClick={handleSubmit}
-                    disabled={isLaunchDisabled}
-                    className={`w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 flex justify-center items-center gap-2 ${isLaunchDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#FF5A5F] text-white hover:bg-[#ff464b] hover:shadow-lg hover:scale-[1.02]"}`}
+                    type="button"
+                    onClick={handleProceedToCheckout}
+                    className="w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 flex justify-center items-center gap-2 bg-[#FF5A5F] text-white hover:bg-[#ff464b] hover:shadow-lg hover:scale-[1.02]"
                   >
-                    {loading ? "Launching..." : "Launch Campaign"}{" "}
-                    <Megaphone size={16} />
+                    Make Payment <IndianRupee size={16} />
                   </button>
-                  {isLaunchDisabled && launchDisabledReason && (
-                    <p className="text-xs text-center text-[#FF5A5F] mt-2 font-medium">
-                      {launchDisabledReason}
-                      {!hasEnoughWallet && !walletLoading && (
-                        <> <Link to="/brand/wallet" className="text-[#87D8FF] hover:underline">Top up wallet</Link></>
-                      )}
-                    </p>
-                  )}
+                  <p className="text-xs text-center text-gray-400 mt-2">
+                    Review campaign details, wallet balance, and add funds on the next step.
+                  </p>
                 </div>
               </div>
             </div>

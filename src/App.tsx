@@ -17,6 +17,7 @@ import BrandLayout from './layouts/BrandLayout';
 import CreatorLayout from './layouts/CreatorLayout';
 import AdminLayout from './layouts/AdminLayout';
 import BrandCreateCampaign from './pages/brand/CreateCampaign';
+import CampaignCheckout from './pages/brand/CampaignCheckout';
 import BrandWallet from './pages/brand/Wallet';
 import CreatorDashboard from './pages/creator/Dashboard';
 import CreatorPayments from './pages/creator/Payments';
@@ -52,6 +53,7 @@ function App() {
             <Route path="/brand/dashboard" element={<BrandLayout children={<div>Brand Overview</div>} />} />
             <Route path="/brand/campaigns" element={<BrandLayout children={<Campaigns />} />} />
             <Route path="/brand/campaigns/create" element={<BrandLayout children={<BrandCreateCampaign />} />} />
+            <Route path="/brand/campaigns/create/checkout" element={<BrandLayout children={<CampaignCheckout />} />} />
             <Route path="/brand/campaigns/:id" element={<BrandLayout children={<CampaignDetail />} />} />
             <Route path="/brand/wallet" element={<BrandLayout children={<BrandWallet />} />} />
             <Route path="/brand/creators" element={<BrandLayout children={<div>Brand Creators</div>} />} />
