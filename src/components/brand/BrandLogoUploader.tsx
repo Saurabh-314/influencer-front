@@ -6,6 +6,7 @@ import { useUploadCampaignImage } from '@/hooks/useImageUpload';
 import {
     ACCEPTED_IMAGE_EXTENSIONS,
     MAX_IMAGE_SIZE_MB,
+    getUploadErrorMessage,
     resolveAssetUrl,
     validateImageFile,
 } from '@/utils/image';
@@ -47,8 +48,7 @@ export default function BrandLogoUploader({ value, onChange }: BrandLogoUploader
             onChange(result.url);
             message.success('Brand logo uploaded');
         } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
-            message.error(err.response?.data?.message || 'Failed to upload logo');
+            message.error(getUploadErrorMessage(error));
             throw error;
         } finally {
             if (cropSrc) URL.revokeObjectURL(cropSrc);

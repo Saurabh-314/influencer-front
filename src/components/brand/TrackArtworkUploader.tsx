@@ -5,6 +5,7 @@ import { useUploadCampaignImage } from '@/hooks/useImageUpload';
 import {
     ACCEPTED_IMAGE_EXTENSIONS,
     MAX_IMAGE_SIZE_MB,
+    getUploadErrorMessage,
     resolveAssetUrl,
     validateImageFile,
 } from '@/utils/image';
@@ -33,8 +34,7 @@ export default function TrackArtworkUploader({ value, onChange }: TrackArtworkUp
             onChange(result.url);
             message.success('Track artwork uploaded');
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } };
-            message.error(error.response?.data?.message || 'Failed to upload artwork');
+            message.error(getUploadErrorMessage(err));
         }
     };
 
