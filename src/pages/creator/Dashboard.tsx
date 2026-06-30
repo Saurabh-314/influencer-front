@@ -30,6 +30,7 @@ import {
 } from '@/hooks/useCampaigns';
 import { formatCount, getVusicRank } from '@/utils/creator';
 import { resolveAssetUrl } from '@/utils/image';
+import { getApiErrorMessage } from '@/api/axios';
 
 type SelectedGig = Campaign & { payout: number; color: string };
 
@@ -159,8 +160,8 @@ export default function CreatorDashboard() {
                     setSelectedGig(null);
                     navigate(`/creator/campaigns/${gig.id}`);
                 },
-                onError: (err: { response?: { data?: { message?: string } } }) => {
-                    setApplyError(err.response?.data?.message || 'Failed to apply');
+                onError: (error) => {
+                    setApplyError(getApiErrorMessage(error, 'Failed to apply'));
                 },
             },
         );

@@ -22,6 +22,7 @@ import {
 } from '@/hooks/useCampaigns';
 import { getVusicRank } from '@/utils/creator';
 import { resolveAssetUrl } from '@/utils/image';
+import { getApiErrorMessage } from '@/api/axios';
 
 export default function CreatorCampaign() {
     const { id } = useParams();
@@ -55,8 +56,8 @@ export default function CreatorCampaign() {
                         window.open(campaign.spotify_link, '_blank');
                     }
                 },
-                onError: (err: { response?: { data?: { message?: string } } }) => {
-                    setApplyError(err.response?.data?.message || 'Failed to apply');
+                onError: (error) => {
+                    setApplyError(getApiErrorMessage(error, 'Failed to apply'));
                 },
             },
         );
@@ -219,8 +220,7 @@ export default function CreatorCampaign() {
                             </div>
                             {submitError && (
                                 <p className="text-sm text-[#FF5A5F]">
-                                    {(submitError as { response?: { data?: { message?: string } } }).response?.data?.message ||
-                                        'Submission failed'}
+                                    {getApiErrorMessage(submitError, 'Submission failed')}
                                 </p>
                             )}
                             <button
