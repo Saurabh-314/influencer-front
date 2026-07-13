@@ -36,6 +36,19 @@ export function useConnectInstagram(returnTo: 'accounts' | 'creator' = 'accounts
     });
 }
 
+export function useDisconnectAccount() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (accountId: string | number) => {
+            await api.delete(`/social-accounts/${accountId}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['social-accounts'] });
+        },
+    });
+}
+
 export function useSyncAccount(accountId?: string) {
     return useQuery({
         queryKey: ['social-account-sync', accountId],
