@@ -16,8 +16,9 @@ import {
     Video,
     Loader2,
     Clock,
+    Unlink,
 } from 'lucide-react';
-import { useConnectInstagram, useInstagramAccount, useSyncAccount } from '@/hooks/useSocialAccounts';
+import { useConnectInstagram, useInstagramAccount, useSyncAccount, useDisconnectAccount } from '@/hooks/useSocialAccounts';
 import {
     useCampaigns,
     useMySubmissions,
@@ -51,6 +52,7 @@ export default function CreatorDashboard() {
 
     const { instagram, isLoading: accountsLoading } = useInstagramAccount();
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('creator');
+    const { mutate: disconnectInstagram, isPending: isDisconnecting } = useDisconnectAccount();
     const { mutate: applyCampaign, isPending: isApplying } = useApplyCampaign();
     const { data: syncData, isLoading: syncLoading } = useSyncAccount(instagram?.id);
     const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
@@ -147,6 +149,14 @@ export default function CreatorDashboard() {
 
     const availableCampaigns = campaigns?.filter((c) => !participatedCampaignIds.has(c.id)) ?? [];
 
+    const handleDisconnect = () => {
+        if (!instagram) return;
+        if (window.confirm('Disconnect this Instagram account? You can reconnect anytime.')) {
+            clearOAuthParams();
+            disconnectInstagram(instagram.id);
+        }
+    };
+
     const handleApply = (gig: SelectedGig) => {
         if (!instagram) return;
         setApplyError('');
@@ -235,6 +245,17 @@ export default function CreatorDashboard() {
             )}
 
             <div className="max-w-5xl mx-auto space-y-6">
+                <div className="flex justify-end">
+                    <button
+                        onClick={handleDisconnect}
+                        disabled={isDisconnecting}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#FF5A5F] border border-red-100 bg-red-50 hover:bg-red-100 disabled:opacity-60 rounded-xl transition-colors"
+                    >
+                        {isDisconnecting ? <Loader2 size={14} className="animate-spin" /> : <Unlink size={14} />}
+                        Disconnect Account
+                    </button>
+                </div>
+
                 <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden">
                     <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative">
                         <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#87D8FF]/5 to-transparent pointer-events-none" />
