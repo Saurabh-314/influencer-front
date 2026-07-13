@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Instagram,
@@ -17,8 +17,11 @@ import {
     Loader2,
     Clock,
     Unlink,
+    ChevronLeft,
+    ChevronRight,
+    Heart,
 } from 'lucide-react';
-import { useConnectInstagram, useInstagramAccount, useSyncAccount, useDisconnectAccount } from '@/hooks/useSocialAccounts';
+import { useConnectInstagram, useInstagramAccount, useSyncAccount, useDisconnectAccount, useAccountReels, type ReelItem } from '@/hooks/useSocialAccounts';
 import {
     useCampaigns,
     useMySubmissions,
@@ -35,12 +38,30 @@ import { getApiErrorMessage } from '@/api/axios';
 
 type SelectedGig = Campaign & { payout: number; color: string };
 
-function StatItem({ label, value, color }: { label: string; value: number; color: string }) {
+function StatItem({
+    label,
+    value,
+    color,
+    onClick,
+    active,
+}: {
+    label: string;
+    value: number;
+    color: string;
+    onClick?: () => void;
+    active?: boolean;
+}) {
     return (
-        <div className="flex flex-col items-center">
+        <button
+            type="button"
+            onClick={onClick}
+            className={`flex flex-col items-center rounded-lg px-2.5 py-1 transition-colors ${
+                onClick ? 'cursor-pointer hover:bg-gray-100' : 'cursor-default'
+            } ${active ? 'bg-gray-100 ring-1 ring-gray-200' : ''}`}
+        >
             <span className={`text-sm font-semibold tracking-tight ${color}`}>{value}</span>
             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{label}</span>
-        </div>
+        </button>
     );
 }
 
@@ -53,6 +74,12 @@ export default function CreatorDashboard() {
     const { instagram, isLoading: accountsLoading } = useInstagramAccount();
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('creator');
     const { mutate: disconnectInstagram, isPending: isDisconnecting } = useDisconnectAccount();
+    const [activeBucket, setActiveBucket] = useState<string>('total');
+    const [playingReel, setPlayingReel] = useState<ReelItem | null>(null);
+    const { data: bucketReels = [], isFetching: reelsLoading } = useAccountReels(instagram?.id, activeBucket);
+    const reelsTrackRef = useRef<HTMLDivElement>(null);
+    const slideReels = (dir: number) =>
+        reelsTrackRef.current?.scrollBy({ left: dir * 320, behavior: 'smooth' });
     const { mutate: applyCampaign, isPending: isApplying } = useApplyCampaign();
     const { data: syncData, isLoading: syncLoading } = useSyncAccount(instagram?.id);
     const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
@@ -141,6 +168,7 @@ export default function CreatorDashboard() {
     const engagement = syncData?.engagement_rate ?? instagram.engagement_rate ?? 0;
     const rank = getVusicRank(followers);
     const reelsStats = syncData?.reels_stats ?? { total: 0, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0 };
+    const carouselReels: ReelItem[] = activeBucket === 'total' ? (syncData?.top_posts ?? []) : bucketReels;
     const avatar =
         profile?.profile_picture_url ||
         instagram.profile_image ||
@@ -323,15 +351,89 @@ export default function CreatorDashboard() {
                             </span>
                             {syncLoading && <Loader2 size={12} className="animate-spin text-gray-400" />}
                         </div>
-                        <div className="flex items-center gap-6 min-w-max text-sm">
-                            <StatItem label="Total" value={reelsStats.total} color="text-gray-900" />
-                            <StatItem label="> 1K" value={reelsStats['>1k']} color="text-[#87D8FF]" />
-                            <StatItem label="> 10K" value={reelsStats['>10k']} color="text-[#FFA542]" />
-                            <StatItem label="> 100K" value={reelsStats['>100k']} color="text-[#FF5A5F]" />
-                            <StatItem label="> 1M" value={reelsStats['>1m']} color="text-emerald-500" />
-                            <StatItem label="> 10M" value={reelsStats['>10m']} color="text-purple-500" />
+                        <div className="flex items-center gap-2 min-w-max text-sm">
+                            <StatItem label="Total" value={reelsStats.total} color="text-gray-900" onClick={() => setActiveBucket('total')} active={activeBucket === 'total'} />
+                            <StatItem label="> 1K" value={reelsStats['>1k']} color="text-[#87D8FF]" onClick={() => setActiveBucket('>1k')} active={activeBucket === '>1k'} />
+                            <StatItem label="> 10K" value={reelsStats['>10k']} color="text-[#FFA542]" onClick={() => setActiveBucket('>10k')} active={activeBucket === '>10k'} />
+                            <StatItem label="> 100K" value={reelsStats['>100k']} color="text-[#FF5A5F]" onClick={() => setActiveBucket('>100k')} active={activeBucket === '>100k'} />
+                            <StatItem label="> 1M" value={reelsStats['>1m']} color="text-emerald-500" onClick={() => setActiveBucket('>1m')} active={activeBucket === '>1m'} />
+                            <StatItem label="> 10M" value={reelsStats['>10m']} color="text-purple-500" onClick={() => setActiveBucket('>10m')} active={activeBucket === '>10m'} />
                         </div>
                     </div>
+                </div>
+
+                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold tracking-tight text-gray-900">
+                            {activeBucket === 'total' ? 'Top Reels' : `Reels · ${activeBucket} views`}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            {reelsLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
+                            <button
+                                type="button"
+                                onClick={() => slideReels(-1)}
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                                aria-label="Scroll left"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => slideReels(1)}
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                                aria-label="Scroll right"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {reelsLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#87D8FF]" />
+                        </div>
+                    ) : carouselReels.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-10 text-center">No reels in this range.</p>
+                    ) : (
+                        <div
+                            ref={reelsTrackRef}
+                            className="flex gap-4 overflow-x-auto scroll-smooth snap-x pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        >
+                            {carouselReels.map((reel) => (
+                                <button
+                                    type="button"
+                                    key={reel.id}
+                                    onClick={() => setPlayingReel(reel)}
+                                    className="group relative shrink-0 w-[180px] aspect-[9/16] snap-start overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 text-left"
+                                >
+                                    {reel.thumbnail_url || reel.media_url ? (
+                                        <img
+                                            src={reel.thumbnail_url || reel.media_url}
+                                            alt=""
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gray-100" />
+                                    )}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all">
+                                            <PlayCircle size={26} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                                        <div className="flex items-center justify-between text-white text-xs font-semibold">
+                                            <span className="flex items-center gap-1">
+                                                <Eye size={12} /> {formatCount(reel.views ?? 0)}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Heart size={12} /> {formatCount(reel.like_count ?? 0)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
@@ -536,6 +638,53 @@ export default function CreatorDashboard() {
                                     </>
                                 )}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {playingReel && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    onClick={() => setPlayingReel(null)}
+                >
+                    <div
+                        className="relative w-full max-w-sm"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setPlayingReel(null)}
+                            className="absolute -top-12 right-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                            aria-label="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                        <video
+                            src={playingReel.media_url}
+                            poster={playingReel.thumbnail_url}
+                            controls
+                            autoPlay
+                            playsInline
+                            className="w-full max-h-[85vh] rounded-2xl bg-black object-contain"
+                        />
+                        <div className="mt-3 flex items-center justify-between text-white/90 text-sm font-semibold">
+                            <span className="flex items-center gap-1.5">
+                                <Eye size={15} /> {formatCount(playingReel.views ?? 0)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                                <Heart size={15} /> {formatCount(playingReel.like_count ?? 0)}
+                            </span>
+                            {playingReel.permalink && (
+                                <a
+                                    href={playingReel.permalink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#87D8FF] hover:underline"
+                                >
+                                    View on Instagram
+                                </a>
+                            )}
                         </div>
                     </div>
                 </div>

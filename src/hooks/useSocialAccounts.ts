@@ -49,6 +49,33 @@ export function useDisconnectAccount() {
     });
 }
 
+export interface ReelItem {
+    id: string;
+    media_url?: string;
+    thumbnail_url?: string;
+    permalink?: string;
+    caption?: string;
+    timestamp?: string;
+    like_count?: number;
+    comments_count?: number;
+    views?: number;
+    bucket?: string;
+}
+
+export function useAccountReels(accountId?: string | number, bucket: string = 'total') {
+    return useQuery({
+        queryKey: ['account-reels', accountId, bucket],
+        queryFn: async () => {
+            const res = await api.get(`/social-accounts/${accountId}/reels`, {
+                params: { bucket },
+            });
+            return res.data.data.reels as ReelItem[];
+        },
+        enabled: !!accountId && bucket !== 'total',
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
 export function useSyncAccount(accountId?: string) {
     return useQuery({
         queryKey: ['social-account-sync', accountId],
