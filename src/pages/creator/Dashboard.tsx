@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getInstagramOAuthErrorMessage, clearInstagramOAuthSearchParams } from '@/utils/socialAccounts';
 import {
     Instagram,
     ArrowRight,
@@ -88,10 +89,11 @@ export default function CreatorDashboard() {
 
     const success = searchParams.get('success');
     const urlError = searchParams.get('error');
+    const urlErrorDescription = searchParams.get('error_description');
+    const oauthErrorMessage = getInstagramOAuthErrorMessage(urlError, urlErrorDescription);
 
     const clearOAuthParams = () => {
-        searchParams.delete('success');
-        searchParams.delete('error');
+        clearInstagramOAuthSearchParams(searchParams);
         setSearchParams(searchParams, { replace: true });
     };
 
@@ -127,9 +129,9 @@ export default function CreatorDashboard() {
                             Account connected successfully!
                         </div>
                     )}
-                    {urlError && (
+                    {oauthErrorMessage && (
                         <div className="mb-4 p-3 text-sm text-[#FF5A5F] bg-red-50 border border-red-100 rounded-xl">
-                            {urlError.replace(/_/g, ' ')}
+                            {oauthErrorMessage}
                         </div>
                     )}
                     <div className="w-16 h-16 bg-[#87D8FF]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#87D8FF]">

@@ -22,7 +22,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             headerTitle="Creator Workspace"
             logoIcon={Activity}
             logoIconClassName="text-[#87D8FF]"
-            title="Vusic One"
+            title="MeloTap"
             navItems={NAV_ITEMS}
             sidebarFooter={<CreatorSidebarProfile />}
         >

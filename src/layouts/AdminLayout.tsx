@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             headerTitle="Admin Console"
             logoIcon={Activity}
             logoIconClassName="text-[#87D8FF]"
-            title="Vusic One"
+            title="MeloTap"
             navItems={NAV_ITEMS}
         >
             {children}

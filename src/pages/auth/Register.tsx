@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import api from '@/api/axios';
 import { Loader2 } from 'lucide-react';
+import { AuthPageShell } from '@/components/marketing/AuthPageShell';
 
 const registerSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -49,12 +50,12 @@ export default function Register() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-muted/20 p-4">
+        <AuthPageShell>
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
                     <CardDescription className="text-center">
-                        Join the platform and start earning
+                        Connect your Instagram and collaborate with brands
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -119,6 +120,6 @@ export default function Register() {
                     </p>
                 </CardFooter>
             </Card>
-        </div>
+        </AuthPageShell>
     );
 }

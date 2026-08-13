@@ -7,7 +7,6 @@ import {
     LineChart,
     Users,
     Settings,
-    Shield,
 } from 'lucide-react';
 import PortalShell from './shared/PortalShell';
 
@@ -18,7 +17,6 @@ const NAV_ITEMS = [
     { key: '/analytics', icon: LineChart, label: 'Analytics' },
     { key: '/accounts', icon: Users, label: 'Accounts' },
     { key: '/settings', icon: Settings, label: 'Settings' },
-    { key: '/privacy-policy', icon: Shield, label: 'Privacy Policy' },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -27,7 +25,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             headerTitle="Admin Workspace"
             logoIcon={Activity}
             logoIconClassName="text-[#87D8FF]"
-            title="Vusic One"
+            title="MeloTap"
             navItems={NAV_ITEMS}
         >
             {children}

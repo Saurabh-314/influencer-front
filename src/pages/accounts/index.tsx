@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/api/axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Instagram, Youtube, Facebook, Twitter, Linkedin, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Loader2, Instagram, Youtube, Facebook, Twitter, Linkedin, Plus } from 'lucide-react';
+import { getInstagramOAuthErrorMessage } from '@/utils/socialAccounts';
 
 const platformIcons: any = {
     instagram: Instagram,
@@ -59,8 +60,10 @@ export default function Accounts() {
     const searchParams = new URLSearchParams(window.location.search);
     const success = searchParams.get('success');
     const urlError = searchParams.get('error');
+    const urlErrorDescription = searchParams.get('error_description');
+    const oauthErrorMessage = getInstagramOAuthErrorMessage(urlError, urlErrorDescription);
 
-    const error = (queryError as any)?.response?.data?.message || (mutationError as any)?.message || urlError;
+    const error = (queryError as any)?.response?.data?.message || (mutationError as any)?.message || oauthErrorMessage;
 
     return (
         <div className="space-y-6">

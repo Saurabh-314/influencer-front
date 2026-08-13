@@ -23,7 +23,7 @@ export default function BrandLayout({ children }: { children: ReactNode }) {
             headerTitle="Campaign Manager"
             logoIcon={Building2}
             logoIconClassName="text-gray-900"
-            title="Brand Portal"
+            title="MeloTap"
             navItems={NAV_ITEMS}
             logoutLabel="Exit Portal"
         >

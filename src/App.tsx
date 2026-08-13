@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider as JotaiProvider } from 'jotai';
 import DashboardLayout from './layouts/DashboardLayout';
+import MarketingLayout from './layouts/MarketingLayout';
 import Dashboard from './pages/dashboard';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -13,6 +14,9 @@ import Accounts from './pages/accounts';
 import SocialAccountDetail from './pages/accounts/SocialAccountDetail';
 import Settings from './pages/settings';
 import PrivacyPolicy from './pages/privacy-policy';
+import TermsOfService from './pages/terms-of-service';
+import DataDeletion from './pages/data-deletion';
+import About from './pages/marketing/About';
 import BrandLayout from './layouts/BrandLayout';
 import CreatorLayout from './layouts/CreatorLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -26,7 +30,7 @@ import CreatorCampaign from './pages/creator/Campaign';
 import CreatorCampaigns from './pages/creator/Campaigns';
 import CreatorPayments from './pages/creator/Payments';
 import CreatorInsights from './pages/creator/Insights';
-import RoleRedirect from './components/auth/RoleRedirect';
+import HomeRedirect from './components/auth/HomeRedirect';
 
 
 const queryClient = new QueryClient();
@@ -37,9 +41,17 @@ function App() {
       <JotaiProvider>
         <BrowserRouter>
           <Routes>
+            {/* Public marketing & legal pages */}
+            <Route path="/" element={<HomeRedirect />} />
+            <Route path="/about" element={<MarketingLayout children={<About />} />} />
+            <Route path="/privacy-policy" element={<MarketingLayout children={<PrivacyPolicy />} />} />
+            <Route path="/terms-of-service" element={<MarketingLayout children={<TermsOfService />} />} />
+            <Route path="/data-deletion" element={<MarketingLayout children={<DataDeletion />} />} />
+
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/" element={<RoleRedirect />} />
+
+            {/* Authenticated app routes */}
             <Route path="/dashboard" element={<DashboardLayout children={<Dashboard />} />} />
             <Route path="/campaigns" element={<DashboardLayout children={<Campaigns />} />} />
             <Route path="/campaigns/:id" element={<DashboardLayout children={<CampaignDetail />} />} />
@@ -48,9 +60,6 @@ function App() {
             <Route path="/accounts" element={<DashboardLayout children={<Accounts />} />} />
             <Route path="/accounts/:id" element={<DashboardLayout children={<SocialAccountDetail />} />} />
             <Route path="/settings" element={<DashboardLayout children={<Settings />} />} />
-            <Route path="/privacy-policy" element={<DashboardLayout children={<PrivacyPolicy />} />} />
-
-
 
             {/* Brand Routes */}
             <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
