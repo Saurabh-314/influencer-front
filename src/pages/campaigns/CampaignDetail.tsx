@@ -24,7 +24,7 @@ export default function CampaignDetail() {
     const location = useLocation();
     const user = getStoredUser();
     const isBrandView = user?.role === 'brand' || location.pathname.startsWith('/brand/');
-    const backPath = isBrandView ? '/brand/campaigns' : '/campaigns';
+    const backPath = isBrandView ? '/brand/campaigns' : '/creator/campaigns';
 
     const [submissionUrl, setSubmissionUrl] = useState('');
     const [success, setSuccess] = useState(false);
