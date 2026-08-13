@@ -5,8 +5,7 @@ import { getRoleDashboardPath, getStoredUser, isAuthenticated } from '@/utils/au
 
 export default function HomeRedirect() {
     if (isAuthenticated()) {
-        const user = getStoredUser();
-        return <Navigate to={getRoleDashboardPath(user?.role)} replace />;
+        return <Navigate to={getRoleDashboardPath(getStoredUser()?.role)} replace />;
     }
 
     return (

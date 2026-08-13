@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuth } from '@/utils/auth';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
@@ -40,9 +41,8 @@ api.interceptors.response.use(
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                 return api(originalRequest);
             } catch (refreshError) {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login';
+                clearAuth();
+                window.location.href = '/';
                 return Promise.reject(refreshError);
             }
         }
