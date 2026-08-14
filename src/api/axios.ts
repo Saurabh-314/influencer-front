@@ -31,14 +31,42 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+
+        // Don't try to refresh token for authentication endpoints
+        const isAuthRequest =
+            originalRequest?.url?.includes('/auth/login') ||
+            originalRequest?.url?.includes('/auth/refresh-token');
+
+        if (
+            error.response?.status === 401 &&
+            !originalRequest?._retry &&
+            !isAuthRequest
+        ) {
             originalRequest._retry = true;
+
             try {
                 const refreshToken = localStorage.getItem('refreshToken');
-                const response = await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, { refreshToken });
+
+                if (!refreshToken) {
+                    clearAuth();
+                    window.location.href = '/';
+                    return Promise.reject(error);
+                }
+
+                const response = await axios.post(
+                    `${api.defaults.baseURL}/auth/refresh-token`,
+                    { refreshToken }
+                );
+
                 const { accessToken } = response.data.data;
+
                 localStorage.setItem('accessToken', accessToken);
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+                originalRequest.headers = {
+                    ...originalRequest.headers,
+                    Authorization: `Bearer ${accessToken}`,
+                };
+
                 return api(originalRequest);
             } catch (refreshError) {
                 clearAuth();
@@ -46,6 +74,7 @@ api.interceptors.response.use(
                 return Promise.reject(refreshError);
             }
         }
+
         return Promise.reject(error);
     }
 );
