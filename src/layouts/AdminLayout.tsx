@@ -4,12 +4,14 @@ import {
     LayoutDashboard,
     Users,
     Settings,
+    Building2,
 } from 'lucide-react';
 import PortalShell from './shared/PortalShell';
 
 const NAV_ITEMS = [
-    { key: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
-    { key: '/admin/users', icon: Users, label: 'Users' },
+    { key: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: '/admin/creators', icon: Users, label: 'Creators' },
+    { key: '/admin/brands', icon: Building2, label: 'Brands' },
     { key: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 

@@ -24,6 +24,12 @@ import CreatorPayments from './pages/creator/Payments';
 import CreatorInsights from './pages/creator/Insights';
 import HomeRedirect from './components/auth/HomeRedirect';
 import NotFound from './pages/NotFound';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminCreators from './pages/admin/Creators';
+import AdminBrands from './pages/admin/Brands';
+import AdminCreatorDetail from './pages/admin/CreatorDetail';
+import AdminCreatorInsights from './pages/admin/CreatorInsights';
+import AdminBrandDetail from './pages/admin/BrandDetail';
 
 
 const queryClient = new QueryClient();
@@ -65,8 +71,12 @@ function App() {
             <Route path="/creator/messages" element={<CreatorLayout children={<div>Creator Messages</div>} />} />
 
             {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={<AdminLayout children={<div>Admin Dashboard</div>} />} />
-            <Route path="/admin/users" element={<AdminLayout children={<div>Admin Users</div>} />} />
+            <Route path="/admin/dashboard" element={<AdminLayout children={<AdminDashboard />} />} />
+            <Route path="/admin/creators" element={<AdminLayout children={<AdminCreators />} />} />
+            <Route path="/admin/creators/:id/insights" element={<AdminLayout children={<AdminCreatorInsights />} />} />
+            <Route path="/admin/creators/:id" element={<AdminLayout children={<AdminCreatorDetail />} />} />
+            <Route path="/admin/brands" element={<AdminLayout children={<AdminBrands />} />} />
+            <Route path="/admin/brands/:id" element={<AdminLayout children={<AdminBrandDetail />} />} />
             <Route path="/admin/settings" element={<AdminLayout children={<div>Admin Settings</div>} />} />
 
             <Route path="*" element={<MarketingLayout children={<NotFound />} />} />
