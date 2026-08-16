@@ -8,6 +8,7 @@ export interface AdminCreatorInstagram {
     display_name?: string;
     profile_image?: string;
     followers_count?: number;
+    following_count?: number;
     engagement_rate?: number;
     total_posts?: number;
     is_connected?: boolean;
@@ -166,6 +167,54 @@ export function useAdminCreatorDetail(id?: string) {
     });
 }
 
+export interface AdminCreatorScoreBadge {
+    key: string;
+    label: string;
+    tone: 'green' | 'blue' | 'yellow';
+}
+
+export interface AdminCreatorScoreBreakdown {
+    key: string;
+    name: string;
+    score: number;
+}
+
+export interface AdminCreatorScore {
+    overall: number;
+    label: string;
+    percentile_label: string;
+    description: string;
+    badges: AdminCreatorScoreBadge[];
+    breakdown: AdminCreatorScoreBreakdown[];
+    audience: {
+        avg_reach: number;
+        avg_reach_change?: string | null;
+        engagement_rate: number;
+        engagement_change?: string | null;
+        avg_reel_views: number;
+        avg_reel_views_change?: string | null;
+        non_follower_reach_pct?: number | null;
+        non_follower_note?: string | null;
+    };
+    engagement: {
+        like_rate: number;
+        comment_rate: number;
+        save_rate?: number | null;
+        share_rate?: number | null;
+    };
+    consistency: {
+        title?: string;
+        median_reel_views: number;
+        median_vs_average_pct?: number | null;
+        median_note?: string | null;
+        above_baseline_pct: number;
+        baseline_note?: string | null;
+        growth_30d_pct?: number | null;
+        growth_note?: string | null;
+        posts_per_week: number;
+    };
+}
+
 export interface AdminCreatorInsightsData {
     creator: {
         id: number;
@@ -197,16 +246,21 @@ export interface AdminCreatorInsightsData {
     };
     top_posts: {
         id: string;
+        caption?: string;
         media_url?: string;
         thumbnail_url?: string;
         permalink?: string;
         like_count?: number;
         comments_count?: number;
+        saved?: number;
+        shares?: number;
+        reach?: number;
         timestamp?: string;
         views?: number;
     }[];
     engagement_rate: number;
     influencer_score: number;
+    creator_score?: AdminCreatorScore;
     adv_stats?: {
         avgLikes: number;
         avgComments: number;
@@ -224,5 +278,6 @@ export function useAdminCreatorInsights(creatorId?: string) {
         },
         enabled: !!creatorId,
         retry: false,
+        staleTime: 5 * 60 * 1000,
     });
 }
