@@ -156,7 +156,7 @@ export default function AdminCreatorDetail() {
 
                 <section className="profile-header">
                     {avatarUrl ? (
-                        <img className="avatar" src={avatarUrl} alt={displayName} />
+                        <img className="avatar" src={avatarUrl} alt={displayName} referrerPolicy="no-referrer" />
                     ) : (
                         <div className="avatar avatar-fallback">{initials(displayName) || 'C'}</div>
                     )}
@@ -305,12 +305,12 @@ export default function AdminCreatorDetail() {
                     <div className="performance-grid">
                         <div className="card performance-card">
                             <div className="section-title">
-                                <h2>Top performing Reels</h2>
-                                <span>Recent content</span>
+                        <h2>Top performing content</h2>
+                        <span>Recent posts & Reels</span>
                             </div>
                             {topReels.length === 0 ? (
                                 <div className="empty-reels">
-                                    {insightsLoading ? 'Loading recent reels…' : 'No recent reels yet.'}
+                                    {insightsLoading ? 'Loading recent posts…' : 'No posts found in the last 90 days.'}
                                 </div>
                             ) : (
                                 topReels.map((reel) => (
@@ -322,7 +322,12 @@ export default function AdminCreatorDetail() {
                                         rel="noopener noreferrer"
                                     >
                                         {reel.thumbnail_url || reel.media_url ? (
-                                            <img className="reel-thumb" src={reel.thumbnail_url || reel.media_url} alt="" />
+                                            <img
+                                                className="reel-thumb"
+                                                src={reel.thumbnail_url || reel.media_url}
+                                                alt=""
+                                                referrerPolicy="no-referrer"
+                                            />
                                         ) : (
                                             <div className="reel-thumb" />
                                         )}

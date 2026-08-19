@@ -103,6 +103,7 @@ export default function AdminCreatorInsights() {
                                     src={avatarUrl}
                                     alt={profile.name}
                                     className="w-20 h-20 rounded-[1.2rem] border border-gray-100 shadow-sm object-cover"
+                                    referrerPolicy="no-referrer"
                                 />
                             ) : (
                                 <div className="w-20 h-20 rounded-[1.2rem] bg-[#87D8FF]/20 flex items-center justify-center">
