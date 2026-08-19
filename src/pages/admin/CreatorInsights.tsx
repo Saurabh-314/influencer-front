@@ -121,11 +121,11 @@ export default function AdminCreatorInsights() {
                                     <Users size={14} /> {formatCount(profile.followers_count)}
                                 </span>
                                 <span className="flex items-center gap-1 text-emerald-500">
-                                    <TrendingUp size={14} /> {engagement_rate}% ER
+                                    <TrendingUp size={14} /> {engagement_rate != null ? `${engagement_rate}% ER` : 'ER pending'}
                                 </span>
                             </div>
                             <div className="mt-2 inline-flex items-center gap-1.5 bg-[#FFE98F]/40 text-[#d48e00] px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                <Star size={10} /> Rank {rank.rank} · Score {influencer_score}
+                                <Star size={10} /> Rank {rank.rank} · Score {influencer_score ?? '—'}
                             </div>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ export default function AdminCreatorInsights() {
                         <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
                             Influencer Score
                         </p>
-                        <h3 className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900">{influencer_score}</h3>
+                        <h3 className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900">{influencer_score ?? '—'}</h3>
                         <p className="text-xs font-medium text-gray-500 mt-2 max-w-[220px] text-right leading-relaxed">
                             {profile.biography || 'No biography available'}
                         </p>

@@ -426,6 +426,18 @@
   margin-top: 20px;
 }
 
+.creator-score-page .rising-score {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .creator-score-page .badge {
   padding: 8px 11px;
   border-radius: 8px;

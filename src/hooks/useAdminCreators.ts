@@ -13,6 +13,10 @@ export interface AdminCreatorInstagram {
     total_posts?: number;
     is_connected?: boolean;
     last_synced_at?: string;
+    biography?: string;
+    account_type?: string;
+    score_status?: 'collecting' | 'ready' | 'provisional' | 'ineligible' | 'error';
+    connected_at?: string;
 }
 
 export interface AdminCreator {
@@ -176,38 +180,44 @@ export interface AdminCreatorScoreBadge {
 export interface AdminCreatorScoreBreakdown {
     key: string;
     name: string;
-    score: number;
+    score: number | null;
 }
 
 export interface AdminCreatorScore {
-    overall: number;
+    overall: number | null;
+    status?: 'collecting' | 'ready' | 'provisional' | 'ineligible' | 'error';
+    score_version?: string;
+    rising_score?: number | null;
+    peer_tier?: string;
+    peer_count?: number;
     label: string;
     percentile_label: string;
     description: string;
     badges: AdminCreatorScoreBadge[];
     breakdown: AdminCreatorScoreBreakdown[];
     audience: {
-        avg_reach: number;
+        avg_reach: number | null;
         avg_reach_change?: string | null;
-        engagement_rate: number;
+        engagement_rate: number | null;
         engagement_change?: string | null;
-        avg_reel_views: number;
+        avg_reel_views: number | null;
         avg_reel_views_change?: string | null;
         non_follower_reach_pct?: number | null;
         non_follower_note?: string | null;
     };
     engagement: {
-        like_rate: number;
-        comment_rate: number;
+        like_rate: number | null;
+        comment_rate: number | null;
         save_rate?: number | null;
         share_rate?: number | null;
+        weighted_er?: number | null;
     };
     consistency: {
         title?: string;
-        median_reel_views: number;
+        median_reel_views: number | null;
         median_vs_average_pct?: number | null;
         median_note?: string | null;
-        above_baseline_pct: number;
+        above_baseline_pct: number | null;
         baseline_note?: string | null;
         growth_30d_pct?: number | null;
         growth_note?: string | null;
@@ -252,15 +262,17 @@ export interface AdminCreatorInsightsData {
         permalink?: string;
         like_count?: number;
         comments_count?: number;
-        saved?: number;
-        shares?: number;
-        reach?: number;
+        saved?: number | null;
+        shares?: number | null;
+        reach?: number | null;
         timestamp?: string;
-        views?: number;
+        views?: number | null;
     }[];
-    engagement_rate: number;
-    influencer_score: number;
+    engagement_rate: number | null;
+    influencer_score: number | null;
     creator_score?: AdminCreatorScore;
+    eligible?: boolean;
+    account_type?: string;
     adv_stats?: {
         avgLikes: number;
         avgComments: number;

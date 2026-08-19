@@ -66,7 +66,7 @@ export default function AdminCreatorDetail() {
     const breakdown = useMemo(() => {
         return BREAKDOWN.map((item) => {
             const match = score?.breakdown.find((row) => row.key === item.key);
-            return { ...item, score: match?.score ?? 0 };
+            return { ...item, score: match?.score ?? null };
         });
     }, [score]);
 
@@ -105,6 +105,10 @@ export default function AdminCreatorDetail() {
     const instagramUrl = username ? `https://instagram.com/${username}` : '';
     const topReels = insights?.top_posts?.slice(0, 3) ?? [];
     const overall = score?.overall;
+    const scoreStatus = score?.status || instagram?.score_status;
+    const isCollecting = scoreStatus === 'collecting' || (Boolean(instagram) && insightsLoading && overall == null);
+    const isIneligible = scoreStatus === 'ineligible';
+    const isScoreError = scoreStatus === 'error';
     const ringDeg = Math.max(0, Math.min(100, overall ?? 0)) * 3.6;
     const audience = score?.audience;
     const engagement = score?.engagement;
@@ -192,22 +196,29 @@ export default function AdminCreatorDetail() {
                                 }}
                             >
                                 <div className="score-number">
-                                    <strong>{overall ?? (insightsLoading ? '—' : 0)}</strong>
-                                    <span>out of 100</span>
+                                    <strong>{overall ?? '—'}</strong>
+                                    <span>{isCollecting ? 'collecting' : 'out of 100'}</span>
                                 </div>
                             </div>
 
                             <div className="score-copy">
-                                <div className="rank-pill">● {score?.percentile_label || (insightsLoading ? 'Calculating score' : 'Score unavailable')}</div>
-                                <h2>{score?.label || (insightsLoading ? 'Loading analytics' : 'Connect Instagram')}</h2>
+                                <div className="rank-pill">● {score?.percentile_label || (insightsLoading ? 'Calculating score' : isIneligible ? 'Not eligible' : 'Score unavailable')}</div>
+                                <h2>{score?.label || (insightsLoading ? 'Loading analytics' : instagram ? 'Collecting data' : 'Connect Instagram')}</h2>
                                 <p>
                                     {score?.description
                                         || (insightsLoading
                                             ? 'Loading live reach, engagement and content performance.'
-                                            : instagram
-                                                ? 'Creator Score will appear once Instagram analytics finish syncing.'
-                                                : 'Link an Instagram account to generate a live Creator Score.')}
+                                            : isIneligible
+                                                ? 'Creator Score requires an Instagram Professional account (Business or Creator).'
+                                                : isScoreError
+                                                    ? 'Instagram Insights failed. Buzzooka will retry instead of scoring incomplete data.'
+                                                    : instagram
+                                                        ? 'Need at least 5 recent Reels plus usable Insights before a mature Creator Score is published.'
+                                                        : 'Link an Instagram account to generate a live Creator Score.')}
                                 </p>
+                                {score?.rising_score != null ? (
+                                    <div className="rising-score">Rising Score {score.rising_score}</div>
+                                ) : null}
                                 {score?.badges?.length ? (
                                     <div className="badges">
                                         {score.badges.map((badge) => (
@@ -226,10 +237,10 @@ export default function AdminCreatorDetail() {
                             <div className="category" key={category.key}>
                                 <div className="category-head">
                                     <span className="category-name">{category.name}</span>
-                                    <span className="category-score">{category.score || '—'}</span>
+                                    <span className="category-score">{category.score ?? '—'}</span>
                                 </div>
                                 <div className="bar">
-                                    <span style={{ width: `${Math.max(0, Math.min(100, category.score))}%` }} />
+                                    <span style={{ width: `${Math.max(0, Math.min(100, category.score ?? 0))}%` }} />
                                 </div>
                             </div>
                         ))}
@@ -318,12 +329,12 @@ export default function AdminCreatorDetail() {
                                         <div>
                                             <div className="reel-title">{reelTitle(reel.caption)}</div>
                                             <div className="reel-meta">
-                                                {formatStat(reel.like_count ?? 0)} likes · {formatStat(reel.comments_count ?? 0)} comments
-                                                {reel.saved ? ` · ${formatStat(reel.saved)} saves` : ''}
+                                                {formatStat(reel.like_count)} likes · {formatStat(reel.comments_count)} comments
+                                                {reel.saved != null ? ` · ${formatStat(reel.saved)} saves` : ''}
                                             </div>
                                         </div>
                                         <div className="reel-views">
-                                            <strong>{formatStat(reel.views ?? 0)}</strong>
+                                            <strong>{formatStat(reel.views)}</strong>
                                             <span>views</span>
                                         </div>
                                     </a>
@@ -363,9 +374,10 @@ export default function AdminCreatorDetail() {
                 </section>
 
                 <div className="score-note">
-                    Creator Score is calculated using recent reach, engagement,
+                    Creator Score is calculated using recent reach, weighted engagement,
                     content performance, audience scale and consistency.
-                    Scores are benchmarked against creators of similar audience size.
+                    Scores are percentile-benchmarked against creators of similar audience size.
+                    Missing Insights are excluded rather than treated as zero.
                 </div>
             </div>
         </div>
