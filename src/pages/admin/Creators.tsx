@@ -113,6 +113,7 @@ export default function AdminCreators() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-gray-900 flex items-center gap-2">
                     <Users size={24} className="text-[#87D8FF]" />
@@ -121,6 +122,14 @@ export default function AdminCreators() {
                 <p className="text-sm text-gray-500 mt-1">
                     Platform-wide view of registered creators, Instagram connections, and campaign activity.
                 </p>
+            </div>
+            <button
+                type="button"
+                onClick={() => navigate('/admin/compare')}
+                className="px-4 py-2 bg-white border border-gray-200 text-sm font-semibold rounded-xl hover:border-[#87D8FF] hover:text-[#87D8FF] transition-colors"
+            >
+                Compare profiles
+            </button>
             </div>
 
             {summary && (

@@ -271,6 +271,13 @@ export default function AdminCreatorDetail() {
                         TAKI<span>LA</span>
                     </button> */}
                     <div className="top-actions">
+                        <button
+                            type="button"
+                            className="btn"
+                            onClick={() => navigate(`/admin/compare?ids=${id}`)}
+                        >
+                            Compare
+                        </button>
                         <button type="button" className="btn" onClick={handleShare} disabled={!instagramUrl}>
                             {copied ? 'Link copied' : 'Share Profile'}
                         </button>

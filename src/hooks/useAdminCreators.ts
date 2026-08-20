@@ -281,6 +281,42 @@ export interface AdminCreatorInsightsData {
     };
 }
 
+export interface AdminCompareProfile {
+    id: number;
+    name: string;
+    email: string;
+    profile_image?: string;
+    status: 'active' | 'inactive';
+    createdAt: string;
+    total_points: number;
+    submissions_total: number;
+    submissions_approved: number;
+    instagram?: AdminCreatorInstagram | null;
+    rank?: {
+        level: string;
+        rank_score: number;
+        rank_name?: string;
+    } | null;
+    creator_score?: AdminCreatorScore | null;
+    score_calculated_at?: string | null;
+}
+
+export function useAdminCreatorCompare(ids: number[]) {
+    const unique = [...new Set(ids)].filter((id) => Number.isInteger(id) && id > 0).slice(0, 4);
+
+    return useQuery({
+        queryKey: ['admin-creator-compare', unique],
+        queryFn: async () => {
+            const res = await api.get('/admin/creators/compare', {
+                params: { ids: unique.join(',') },
+            });
+            return res.data.data as AdminCompareProfile[];
+        },
+        enabled: unique.length >= 1,
+        staleTime: 60 * 1000,
+    });
+}
+
 export function useAdminCreatorInsights(creatorId?: string) {
     return useQuery({
         queryKey: ['admin-creator-insights', creatorId],

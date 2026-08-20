@@ -5,12 +5,14 @@ import {
     Users,
     Settings,
     Building2,
+    GitCompare,
 } from 'lucide-react';
 import PortalShell from './shared/PortalShell';
 
 const NAV_ITEMS = [
     { key: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { key: '/admin/creators', icon: Users, label: 'Creators' },
+    { key: '/admin/compare', icon: GitCompare, label: 'Compare Profiles' },
     { key: '/admin/brands', icon: Building2, label: 'Brands' },
     { key: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

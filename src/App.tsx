@@ -30,6 +30,7 @@ import AdminBrands from './pages/admin/Brands';
 import AdminCreatorDetail from './pages/admin/CreatorDetail';
 import AdminCreatorInsights from './pages/admin/CreatorInsights';
 import AdminBrandDetail from './pages/admin/BrandDetail';
+import AdminCompareProfiles from './pages/admin/CompareProfiles';
 
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={<AdminLayout children={<AdminDashboard />} />} />
             <Route path="/admin/creators" element={<AdminLayout children={<AdminCreators />} />} />
+            <Route path="/admin/compare" element={<AdminLayout children={<AdminCompareProfiles />} />} />
             <Route path="/admin/creators/:id/insights" element={<AdminLayout children={<AdminCreatorInsights />} />} />
             <Route path="/admin/creators/:id" element={<AdminLayout children={<AdminCreatorDetail />} />} />
             <Route path="/admin/brands" element={<AdminLayout children={<AdminBrands />} />} />
