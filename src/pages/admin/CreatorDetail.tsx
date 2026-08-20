@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
     useAdminCreatorDetail,
     useAdminCreatorInsights,
@@ -52,6 +52,104 @@ function initials(name: string) {
         .join('');
 }
 
+function AnalyticsSkeleton() {
+    return (
+        <div aria-busy="true" aria-live="polite" aria-label="Loading creator analytics">
+            <section className="score-grid">
+                <div className="card score-card">
+                    <div className="score-layout">
+                        <div className="sk-ring" />
+                        <div className="score-copy" style={{ width: '100%' }}>
+                            <span className="sk sk-pill" />
+                            <span className="sk sk-title" />
+                            <span className="sk sk-line" />
+                            <span className="sk sk-line short" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card category-card">
+                    <span className="sk sk-heading" />
+                    <span className="sk sk-subhead" />
+                    {BREAKDOWN.map((category) => (
+                        <div className="category" key={category.key}>
+                            <div className="category-head">
+                                <span className="category-name">{category.name}</span>
+                                <span className="sk" style={{ width: 28, height: 13 }} />
+                            </div>
+                            <span className="sk sk-bar" />
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="section">
+                <div className="section-title">
+                    <h2>Audience performance</h2>
+                    <span>Last 30 days</span>
+                </div>
+                <div className="metric-grid">
+                    {['Average Reach', 'Engagement Rate', 'Avg Reel Views', 'Non-Follower Reach'].map((label) => (
+                        <div className="metric" key={label}>
+                            <div className="metric-label">{label}</div>
+                            <span className="sk sk-metric-value" />
+                            <span className="sk sk-metric-change" />
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="section">
+                <div className="section-title">
+                    <h2>Engagement quality</h2>
+                    <span>Per reached account</span>
+                </div>
+                <div className="metric-grid">
+                    {['Like Rate', 'Comment Rate', 'Save Rate', 'Share Rate'].map((label) => (
+                        <div className="metric" key={label}>
+                            <div className="metric-label">{label}</div>
+                            <span className="sk sk-metric-value" />
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="section">
+                <div className="performance-grid">
+                    <div className="card performance-card">
+                        <div className="section-title">
+                            <h2>Top performing content</h2>
+                            <span>Recent posts & Reels</span>
+                        </div>
+                        {[0, 1, 2].map((row) => (
+                            <div className="reel-row" key={row}>
+                                <span className="sk sk-thumb" />
+                                <div>
+                                    <span className="sk" style={{ width: '72%', height: 13, marginBottom: 8 }} />
+                                    <span className="sk" style={{ width: '48%', height: 10 }} />
+                                </div>
+                                <span className="sk" style={{ width: 42, height: 16 }} />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="card performance-card">
+                        <span className="sk sk-heading" />
+                        <span className="sk sk-subhead" />
+                        {['Median Reel Views', 'Content above baseline', '30 Day Growth'].map((label) => (
+                            <div className="consistency-block" key={label}>
+                                <div className="metric-label">{label}</div>
+                                <span className="sk sk-metric-value" />
+                                <span className="sk sk-metric-change" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
 export default function AdminCreatorDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -73,8 +171,40 @@ export default function AdminCreatorDetail() {
     if (isLoading) {
         return (
             <div className="creator-score-page -m-6 md:-m-8 min-h-full">
-                <div className="page" style={{ display: 'grid', placeItems: 'center', minHeight: 420 }}>
-                    <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#ff3158' }} />
+                <div className="page" aria-busy="true" aria-label="Loading creator">
+                    <header className="topbar">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/admin/creators')}
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+                        >
+                            <ArrowLeft size={16} /> Back to creators
+                        </button>
+                        <div className="top-actions">
+                            <span className="sk" style={{ width: 118, height: 40, borderRadius: 10 }} />
+                            <span className="sk" style={{ width: 92, height: 40, borderRadius: 10 }} />
+                        </div>
+                    </header>
+
+                    <section className="profile-header">
+                        <span className="sk sk-avatar" />
+                        <div className="profile-info">
+                            <span className="sk sk-name" />
+                            <span className="sk sk-username" />
+                            <span className="sk sk-line" />
+                            <span className="sk sk-line short" />
+                        </div>
+                        <div className="profile-stats">
+                            {['Followers', 'Following', 'Media'].map((label) => (
+                                <div className="profile-stat" key={label}>
+                                    <span className="sk sk-stat" />
+                                    <span>{label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <AnalyticsSkeleton />
                 </div>
             </div>
         );
@@ -113,6 +243,7 @@ export default function AdminCreatorDetail() {
     const audience = score?.audience;
     const engagement = score?.engagement;
     const consistency = score?.consistency;
+    const showAnalyticsSkeleton = Boolean(instagram) && insightsLoading && !insights;
 
     const handleShare = async () => {
         if (!instagramUrl) return;
@@ -165,29 +296,44 @@ export default function AdminCreatorDetail() {
                         <h1>{displayName}</h1>
                         <div className="username">{username ? `@${username}` : ''}</div>
                         <div className="bio">
-                            {bio || (insightsLoading ? 'Loading creator profile…' : 'No biography available.')}
+                            {bio ? bio : insightsLoading ? (
+                                <>
+                                    <span className="sk sk-line" />
+                                    <span className="sk sk-line short" />
+                                </>
+                            ) : 'No biography available.'}
                         </div>
                     </div>
 
                     <div className="profile-stats">
                         <div className="profile-stat">
-                            <strong>{followers ? formatStat(followers) : '—'}</strong>
+                            <strong>
+                                {followers ? formatStat(followers) : insightsLoading ? <span className="sk sk-stat" /> : '—'}
+                            </strong>
                             <span>Followers</span>
                         </div>
                         <div className="profile-stat">
-                            <strong>{following ? formatStat(following) : '—'}</strong>
+                            <strong>
+                                {following ? formatStat(following) : insightsLoading ? <span className="sk sk-stat" /> : '—'}
+                            </strong>
                             <span>Following</span>
                         </div>
                         <div className="profile-stat">
-                            <strong>{mediaCount ? formatStat(mediaCount) : '—'}</strong>
+                            <strong>
+                                {mediaCount ? formatStat(mediaCount) : insightsLoading ? <span className="sk sk-stat" /> : '—'}
+                            </strong>
                             <span>Media</span>
                         </div>
                     </div>
                 </section>
 
+                {showAnalyticsSkeleton ? (
+                    <AnalyticsSkeleton />
+                ) : (
+                <>
                 <section className="score-grid">
                     <div className="card score-card">
-                        <div className="eyebrow">TAKILA Creator Score</div>
+                        {/* <div className="eyebrow">TAKILA Creator Score</div> */}
                         <div className="score-layout">
                             <div
                                 className="score-ring"
@@ -309,9 +455,7 @@ export default function AdminCreatorDetail() {
                         <span>Recent posts & Reels</span>
                             </div>
                             {topReels.length === 0 ? (
-                                <div className="empty-reels">
-                                    {insightsLoading ? 'Loading recent posts…' : 'No posts found in the last 90 days.'}
-                                </div>
+                                <div className="empty-reels">No posts found in the last 90 days.</div>
                             ) : (
                                 topReels.map((reel) => (
                                     <a
@@ -377,6 +521,9 @@ export default function AdminCreatorDetail() {
                         </div>
                     </div>
                 </section>
+
+                </>
+                )}
 
                 <div className="score-note">
                     Creator Score is calculated using recent reach, weighted engagement,

@@ -490,6 +490,131 @@
   color: var(--muted);
 }
 
+.creator-score-page .sk {
+  display: block;
+  background: linear-gradient(90deg, #ecece8 22%, #f6f6f3 50%, #ecece8 78%);
+  background-size: 200% 100%;
+  animation: creator-sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.creator-score-page .sk-ring {
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #ecece8 22%, #f6f6f3 50%, #ecece8 78%);
+  background-size: 200% 100%;
+  animation: creator-sk-shimmer 1.4s ease-in-out infinite;
+  position: relative;
+}
+
+.creator-score-page .sk-ring::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  background: var(--surface);
+  border-radius: 50%;
+}
+
+.creator-score-page .sk-pill {
+  width: 148px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.creator-score-page .sk-title {
+  width: min(280px, 80%);
+  height: 28px;
+  margin: 14px 0 16px;
+}
+
+.creator-score-page .sk-line {
+  width: 100%;
+  max-width: 360px;
+  height: 12px;
+  margin-bottom: 10px;
+}
+
+.creator-score-page .sk-line.short {
+  width: 62%;
+  max-width: 220px;
+}
+
+.creator-score-page .sk-heading {
+  width: 180px;
+  height: 16px;
+  margin-bottom: 10px;
+}
+
+.creator-score-page .sk-subhead {
+  width: 220px;
+  height: 20px;
+  margin: 8px 0 28px;
+}
+
+.creator-score-page .sk-bar {
+  height: 6px;
+  width: 100%;
+  border-radius: 99px;
+  margin-top: 8px;
+}
+
+.creator-score-page .sk-metric-value {
+  width: 88px;
+  height: 30px;
+}
+
+.creator-score-page .sk-metric-change {
+  width: 64px;
+  height: 10px;
+  margin-top: 10px;
+}
+
+.creator-score-page .sk-thumb {
+  width: 48px;
+  height: 62px;
+  border-radius: 8px;
+}
+
+.creator-score-page .sk-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+}
+
+.creator-score-page .sk-name {
+  width: 210px;
+  height: 30px;
+  margin-bottom: 10px;
+}
+
+.creator-score-page .sk-username {
+  width: 120px;
+  height: 14px;
+  margin-bottom: 16px;
+}
+
+.creator-score-page .sk-stat {
+  width: 54px;
+  height: 22px;
+  margin-left: auto;
+  margin-bottom: 6px;
+}
+
+@keyframes creator-sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-score-page .sk,
+  .creator-score-page .sk-ring {
+    animation: none;
+    background: #ecece8;
+  }
+}
+
 @media (max-width: 1050px) {
   .creator-score-page .score-grid,
   .creator-score-page .performance-grid {
@@ -507,6 +632,10 @@
   .creator-score-page .profile-stats {
     grid-column: 2;
     text-align: left;
+  }
+
+  .creator-score-page .sk-stat {
+    margin-left: 0;
   }
 }
 
@@ -544,9 +673,15 @@
     gap: 25px;
   }
 
-  .creator-score-page .score-ring {
+  .creator-score-page .score-ring,
+  .creator-score-page .sk-ring {
     width: 175px;
     height: 175px;
+  }
+
+  .creator-score-page .sk-avatar {
+    width: 65px;
+    height: 65px;
   }
 
   .creator-score-page .score-number strong {
@@ -559,5 +694,12 @@
 
   .creator-score-page .profile-stats {
     gap: 20px;
+  }
+
+  .creator-score-page .score-copy .sk-pill,
+  .creator-score-page .score-copy .sk-title,
+  .creator-score-page .score-copy .sk-line {
+    margin-left: auto;
+    margin-right: auto;
   }
 }
