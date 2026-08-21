@@ -19,6 +19,7 @@ module.exports = {
       fontFamily: {
         dm: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         manrope: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        instrument: ['"Instrument Serif"', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

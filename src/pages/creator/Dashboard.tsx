@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getInstagramOAuthErrorMessage, clearInstagramOAuthSearchParams } from '@/utils/socialAccounts';
+import { InstagramConnectCard } from '@/components/creator/InstagramConnectFlow';
 import {
     Instagram,
-    ArrowRight,
     Star,
     Music,
     PlayCircle,
@@ -122,46 +122,14 @@ export default function CreatorDashboard() {
 
     if (!instagram) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] text-center">
-                    {success && (
-                        <div className="mb-4 p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl">
-                            Account connected successfully!
-                        </div>
-                    )}
-                    {oauthErrorMessage && (
-                        <div className="mb-4 p-3 text-sm text-[#FF5A5F] bg-red-50 border border-red-100 rounded-xl">
-                            {oauthErrorMessage}
-                        </div>
-                    )}
-                    <div className="w-16 h-16 bg-[#87D8FF]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#87D8FF]">
-                        <Instagram size={32} />
-                    </div>
-                    <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-2">Connect Your Audience</h2>
-                    <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed">
-                        Link your Instagram account to unlock exclusive music campaigns tailored to your specific
-                        engagement stats and Vusic Rank.
-                    </p>
-                    <button
-                        onClick={() => {
-                            clearOAuthParams();
-                            connectInstagram();
-                        }}
-                        disabled={isConnecting}
-                        className="w-full py-3.5 bg-[#87D8FF] hover:bg-[#7bc8ef] disabled:opacity-60 text-gray-900 text-sm font-semibold rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
-                    >
-                        {isConnecting ? (
-                            <>
-                                <Loader2 size={16} className="animate-spin" /> Connecting...
-                            </>
-                        ) : (
-                            <>
-                                Connect Instagram <ArrowRight size={16} />
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
+            <InstagramConnectCard
+                errorMessage={oauthErrorMessage}
+                isConnecting={isConnecting}
+                onConnect={() => {
+                    clearOAuthParams();
+                    connectInstagram();
+                }}
+            />
         );
     }
 
