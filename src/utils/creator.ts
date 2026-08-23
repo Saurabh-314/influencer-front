@@ -39,11 +39,77 @@ export function formatCount(value: number): string {
     return value.toLocaleString();
 }
 
+export function formatCompactInr(amount: number | string): string {
+    const n = Number(amount) || 0;
+    if (n >= 10_000_000) {
+        const cr = n / 10_000_000;
+        return `₹${cr.toFixed(cr >= 10 ? 1 : 2).replace(/\.0$/, '')}Cr`;
+    }
+    if (n >= 100_000) {
+        const lakhs = n / 100_000;
+        const digits = lakhs >= 10 ? 1 : 2;
+        return `₹${lakhs.toFixed(digits).replace(/\.0$/, '')}L`;
+    }
+    return `₹${Math.round(n).toLocaleString('en-IN')}`;
+}
+
+export function hasCreatorRates(rates?: { reel?: number; story?: number; post?: number } | null) {
+    return Boolean(rates?.reel || rates?.story || rates?.post);
+}
+
 export function getVusicRank(followers: number): VusicRank {
     if (followers >= 1_000_000) return { rank: 1, label: 'Mega' };
     if (followers >= 100_000) return { rank: 2, label: 'Top' };
     if (followers >= 10_000) return { rank: 3, label: 'Micro' };
     return { rank: 4, label: 'Nano' };
+}
+
+export function estimateMonthlyEarnings(followers: number, goal?: string) {
+    let low = 5;
+    let high = 12;
+    if (followers >= 1_000_000) {
+        low = 150;
+        high = 400;
+    } else if (followers >= 100_000) {
+        low = 45;
+        high = 85;
+    } else if (followers >= 10_000) {
+        low = 18;
+        high = 40;
+    } else if (followers >= 1_000) {
+        low = 8;
+        high = 20;
+    }
+    if (goal === 'more_ops') high = Math.round(high * 0.85);
+    return {
+        low,
+        high,
+        label: `₹${low}–${high}K`,
+        rangeLabel: `₹${low}K – ₹${high}K`,
+        width: Math.min(92, 40 + Math.round(followers / 4000)),
+    };
+}
+
+export function computeProfileStrength(input: {
+    connected?: boolean;
+    creatorType?: string;
+    categories?: number;
+    opportunities?: number;
+    location?: string;
+    languages?: number;
+    earningGoal?: string;
+    rates?: boolean;
+}) {
+    let score = 0;
+    if (input.connected) score += 35;
+    if (input.creatorType) score += 10;
+    if ((input.categories || 0) > 0) score += 15;
+    if ((input.opportunities || 0) > 0) score += 10;
+    if (input.location) score += 10;
+    if ((input.languages || 0) > 0) score += 10;
+    if (input.earningGoal) score += 5;
+    if (input.rates) score += 5;
+    return Math.min(100, score);
 }
 
 export function getMediaViews(media: InstagramMedia): number {

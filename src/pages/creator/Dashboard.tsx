@@ -1,663 +1,436 @@
-import { useState, useMemo, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getInstagramOAuthErrorMessage, clearInstagramOAuthSearchParams } from '@/utils/socialAccounts';
-import { InstagramConnectCard } from '@/components/creator/InstagramConnectFlow';
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-    Instagram,
-    Star,
-    Music,
-    PlayCircle,
-    Eye,
-    Users,
-    TrendingUp,
-    CheckCircle2,
-    X,
-    Zap,
-    Link2,
-    Video,
-    Loader2,
     Clock,
-    Unlink,
-    ChevronLeft,
-    ChevronRight,
-    Heart,
+    IndianRupee,
+    Loader2,
+    TrendingUp,
+    Users,
+    Wallet,
 } from 'lucide-react';
-import { useConnectInstagram, useInstagramAccount, useSyncAccount, useDisconnectAccount, useAccountReels, type ReelItem } from '@/hooks/useSocialAccounts';
 import {
+    CampaignGiftCard,
+    GigApplyModal,
+    campaignMatch,
+    toSelectedGig,
+    type SelectedGig,
+} from '@/components/creator/CampaignGiftCard';
+import { useInstagramAccount, useSyncAccount } from '@/hooks/useSocialAccounts';
+import {
+    useApplyCampaign,
     useCampaigns,
     useMySubmissions,
-    useCreatorEarnings,
-    useApplyCampaign,
     getPayoutForRank,
-    getCampaignColor,
-    type Campaign,
-    type CampaignSubmission,
 } from '@/hooks/useCampaigns';
-import { formatCount, getVusicRank } from '@/utils/creator';
-import { resolveAssetUrl } from '@/utils/image';
+import {
+    computeProfileStrength,
+    estimateMonthlyEarnings,
+    getVusicRank,
+    hasCreatorRates,
+} from '@/utils/creator';
 import { getApiErrorMessage } from '@/api/axios';
+import { getStoredUser } from '@/utils/auth';
+import { creatorTypeLabel } from '@/constants/onboarding';
 
-type SelectedGig = Campaign & { payout: number; color: string };
+function formatAudience(value: number) {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+    return value.toLocaleString();
+}
 
-function StatItem({
+function formatDelta(value: number, suffix = '%') {
+    if (!value) return undefined;
+    const abs = Math.abs(value).toFixed(1).replace(/\.0$/, '');
+    return `${value > 0 ? '+' : '−'}${abs}${suffix}`;
+}
+
+function KpiCard({
     label,
+    icon: Icon,
     value,
-    color,
+    delta,
+    foot,
     onClick,
-    active,
 }: {
     label: string;
-    value: number;
-    color: string;
+    icon: typeof Users;
+    value: string;
+    delta?: string;
+    foot: string;
     onClick?: () => void;
-    active?: boolean;
 }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`flex flex-col items-center rounded-lg px-2.5 py-1 transition-colors ${
-                onClick ? 'cursor-pointer hover:bg-gray-100' : 'cursor-default'
-            } ${active ? 'bg-gray-100 ring-1 ring-gray-200' : ''}`}
+            className="min-h-[90px] rounded-[15px] border border-[#e9e9ef] bg-white px-[15px] py-3.5 text-left"
         >
-            <span className={`text-sm font-semibold tracking-tight ${color}`}>{value}</span>
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{label}</span>
+            <div className="mb-2.5 flex items-center justify-between">
+                <div className="text-[11px] text-[#858791]">{label}</div>
+                <div className="grid h-[31px] w-[31px] place-items-center rounded-[9px] bg-[#f6f6f8] text-[#4f5159]">
+                    <Icon size={15} />
+                </div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+                <strong className="text-[26px] tracking-[-1px] text-[#121318]">{value}</strong>
+                {delta ? <span className="text-[11px] font-bold text-[#15945a]">{delta}</span> : null}
+            </div>
+            <div className="mt-1.5 text-[11px] text-[#989aa2]">{foot}</div>
         </button>
     );
 }
 
 export default function CreatorDashboard() {
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const campaignsRef = useRef<HTMLDivElement>(null);
     const [selectedGig, setSelectedGig] = useState<SelectedGig | null>(null);
     const [applyError, setApplyError] = useState('');
 
-    const { instagram, isLoading: accountsLoading } = useInstagramAccount();
-    const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('creator');
-    const { mutate: disconnectInstagram, isPending: isDisconnecting } = useDisconnectAccount();
-    const [activeBucket, setActiveBucket] = useState<string>('total');
-    const [playingReel, setPlayingReel] = useState<ReelItem | null>(null);
-    const { data: bucketReels = [], isFetching: reelsLoading } = useAccountReels(instagram?.id, activeBucket);
-    const reelsTrackRef = useRef<HTMLDivElement>(null);
-    const slideReels = (dir: number) =>
-        reelsTrackRef.current?.scrollBy({ left: dir * 320, behavior: 'smooth' });
-    const { mutate: applyCampaign, isPending: isApplying } = useApplyCampaign();
-    const { data: syncData, isLoading: syncLoading } = useSyncAccount(instagram?.id);
+    const user = getStoredUser();
+    const onboarding = user?.onboarding_data;
+    const { instagram } = useInstagramAccount();
+    const { data: syncData } = useSyncAccount(instagram?.id);
     const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
-    const { data: submissions, isLoading: submissionsLoading } = useMySubmissions();
-    const { data: earnings, isLoading: earningsLoading } = useCreatorEarnings(!!instagram);
-
-    const success = searchParams.get('success');
-    const urlError = searchParams.get('error');
-    const urlErrorDescription = searchParams.get('error_description');
-    const oauthErrorMessage = getInstagramOAuthErrorMessage(urlError, urlErrorDescription);
-
-    const clearOAuthParams = () => {
-        clearInstagramOAuthSearchParams(searchParams);
-        setSearchParams(searchParams, { replace: true });
-    };
+    const { data: submissions } = useMySubmissions();
+    const { mutate: applyCampaign, isPending: isApplying } = useApplyCampaign();
 
     const participatedCampaignIds = useMemo(
         () => new Set(submissions?.map((s) => s.campaign_id) ?? []),
         [submissions],
     );
 
-    const inProgressSubmissions = useMemo(
-        () => submissions?.filter((s) => s.status === 'applied') ?? [],
-        [submissions],
-    );
-
-    const completedSubmissions = useMemo(
-        () => submissions?.filter((s) => s.status !== 'applied') ?? [],
-        [submissions],
-    );
-
-    if (accountsLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin text-[#87D8FF]" />
-            </div>
-        );
-    }
-
-    if (!instagram) {
-        return (
-            <InstagramConnectCard
-                errorMessage={oauthErrorMessage}
-                isConnecting={isConnecting}
-                onConnect={() => {
-                    clearOAuthParams();
-                    connectInstagram();
-                }}
-            />
-        );
-    }
-
     const profile = syncData?.profile;
-    const followers = profile?.followers_count ?? instagram.followers_count ?? 0;
-    const engagement = syncData?.engagement_rate ?? instagram.engagement_rate ?? 0;
+    const followers = profile?.followers_count ?? instagram?.followers_count ?? 0;
+    const engagement = Number(syncData?.engagement_rate ?? instagram?.engagement_rate ?? 0);
     const rank = getVusicRank(followers);
-    const reelsStats = syncData?.reels_stats ?? { total: 0, '>1k': 0, '>10k': 0, '>100k': 0, '>1m': 0, '>10m': 0 };
-    const carouselReels: ReelItem[] = activeBucket === 'total' ? (syncData?.top_posts ?? []) : bucketReels;
+    const displayName = user?.name || instagram?.display_name || instagram?.username || 'there';
+    const username = instagram?.username || user?.name?.replace(/\s+/g, '_').toLowerCase() || 'creator';
     const avatar =
         profile?.profile_picture_url ||
-        instagram.profile_image ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(instagram.display_name || instagram.username)}&background=87D8FF&color=fff`;
-    const displayName = profile?.name || instagram.display_name || instagram.username;
-
+        instagram?.profile_image ||
+        user?.profile_image ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=121318&color=fff`;
+    const firstName = displayName.split(' ')[0];
     const availableCampaigns = campaigns?.filter((c) => !participatedCampaignIds.has(c.id)) ?? [];
+    const featured = availableCampaigns.slice(0, 3);
+    const topPayout = featured.reduce((max, campaign) => Math.max(max, getPayoutForRank(campaign, rank.rank)), 0);
+    const earnings = estimateMonthlyEarnings(followers, onboarding?.earningGoal);
+    const hasRates = hasCreatorRates(onboarding?.rates);
+    const strength = computeProfileStrength({
+        connected: Boolean(instagram),
+        creatorType: onboarding?.creatorType,
+        categories: onboarding?.contentCategories?.length,
+        opportunities: onboarding?.opportunities?.length,
+        location: onboarding?.location,
+        languages: onboarding?.languages?.length,
+        earningGoal: onboarding?.earningGoal,
+        rates: hasRates,
+    });
+    const creatorScore = Math.min(100, Math.round(36 + engagement * 5 + Math.min(24, followers / 8000)));
+    const nicheLine = [
+        creatorTypeLabel(onboarding?.creatorType),
+        ...(onboarding?.contentCategories?.slice(0, 2) || []),
+        onboarding?.location,
+    ]
+        .filter(Boolean)
+        .join(' · ');
 
-    const handleDisconnect = () => {
-        if (!instagram) return;
-        if (window.confirm('Disconnect this Instagram account? You can reconnect anytime.')) {
-            clearOAuthParams();
-            disconnectInstagram(instagram.id);
-        }
-    };
+    const growthPct = Number(
+        syncData?.creator_score?.consistency?.growth_30d_pct ??
+            syncData?.creator_score?.metrics?.follower_growth_pct ??
+            0,
+    );
+    const actionsLeft = strength >= 100 ? 0 : Math.max(1, Math.ceil((100 - strength) / 15));
+    const engagementDelta = engagement >= 3 ? Number((engagement - 3).toFixed(1)) : 0;
+    const isVerified = Boolean(user?.email_verified || user?.phone_verified);
+
+    const nextMove = !hasRates
+        ? {
+              title: 'Your next best move',
+              copy: 'Add your collaboration rates to make your earning estimate more accurate.',
+              cta: 'Add rates',
+              to: '/creator/profile#rates',
+          }
+        : strength < 100
+          ? {
+                title: 'Your next best move',
+                copy: 'Finish the remaining profile details so Buzooka can match you with better campaigns.',
+                cta: 'Finish profile',
+                to: '/creator/profile',
+            }
+          : featured.length
+            ? {
+                  title: 'Your next best move',
+                  copy: 'Open a fresh opportunity and apply while the match is still strong.',
+                  cta: 'View gifts',
+                  to: '/creator/campaigns',
+              }
+            : {
+                  title: 'Your next best move',
+                  copy: 'Review your audience insights to see what brands you are best positioned for.',
+                  cta: 'Open analytics',
+                  to: '/creator/analytics',
+              };
 
     const handleApply = (gig: SelectedGig) => {
-        if (!instagram) return;
+        if (!instagram?.id) {
+            setApplyError('Your Instagram account is still syncing. Try applying again in a moment.');
+            return;
+        }
         setApplyError('');
         applyCampaign(
             { campaign_id: gig.id, social_account_id: Number(instagram.id) },
             {
                 onSuccess: () => {
-                    if (gig.spotify_link) {
-                        window.open(gig.spotify_link, '_blank');
-                    }
+                    if (gig.spotify_link) window.open(gig.spotify_link, '_blank');
                     setSelectedGig(null);
                     navigate(`/creator/campaigns/${gig.id}`);
                 },
-                onError: (error) => {
-                    setApplyError(getApiErrorMessage(error, 'Failed to apply'));
-                },
+                onError: (error) => setApplyError(getApiErrorMessage(error, 'Failed to apply')),
             },
         );
     };
 
-    const renderCampaignRow = (campaign: Campaign, payout: number, color: string, onClick: () => void) => (
-        <div
-            key={campaign.id}
-            onClick={onClick}
-            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-4 hover:border-[#87D8FF] hover:shadow-sm transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
-        >
-            {campaign.track_artwork_url ? (
-                <img
-                    src={resolveAssetUrl(campaign.track_artwork_url)}
-                    alt={campaign.title}
-                    className="w-14 h-14 rounded-xl object-cover shadow-inner"
-                />
-            ) : (
-                <div className={`w-14 h-14 rounded-xl ${color} flex items-center justify-center shadow-inner`}>
-                    <Music size={20} className="text-white opacity-80" />
-                </div>
-            )}
-            <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm text-gray-900 truncate">{campaign.title}</h4>
-                <p className="text-xs font-medium text-gray-500 truncate">
-                    {campaign.brand_name || 'Brand'} • {campaign.genre || campaign.campaign_type}
-                </p>
-            </div>
-            <div className="text-right flex-shrink-0">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Payout</p>
-                <p className="text-sm font-semibold text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 group-hover:bg-[#87D8FF]/10 transition-colors">
-                    ₹{payout.toLocaleString()}
-                </p>
-            </div>
-        </div>
-    );
-
-    const renderInProgressRow = (submission: CampaignSubmission) => {
-        const campaign = submission.campaign;
-        if (!campaign) return null;
-        const payout = getPayoutForRank(campaign, rank.rank);
-        const color = getCampaignColor(campaign, rank.rank);
-        return renderCampaignRow(campaign, payout, color, () => navigate(`/creator/campaigns/${campaign.id}`));
-    };
-
-    const totalEarned = earnings?.totalEarned ?? 0;
-    const balance = earnings?.balance ?? 0;
-    const pendingBalance = earnings?.pendingBalance ?? 0;
-
-    const formatSubmissionDate = (dateStr: string) =>
-        new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-    const getSubmissionStatusLabel = (status: string) => {
-        if (status === 'approved') return 'Paid';
-        if (status === 'rejected') return 'Rejected';
-        return 'Pending';
-    };
-
-    const getSubmissionStatusColor = (status: string) => {
-        if (status === 'approved') return 'text-emerald-600';
-        if (status === 'rejected') return 'text-red-500';
-        return 'text-amber-600';
-    };
+    const scrollToCampaigns = () => campaignsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     return (
         <>
-            {success && (
-                <div className="mb-4 p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl max-w-5xl mx-auto">
-                    Instagram connected successfully!
-                </div>
-            )}
-
-            <div className="max-w-5xl mx-auto space-y-6">
-                <div className="flex justify-end">
+            <div className="mx-auto max-w-[1420px]">
+                <div className="mb-5 flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
+                    <div>
+                        <h1 className="mb-1.5 text-[31px] font-extrabold leading-[1.06] tracking-[-1.3px]">
+                            Hey, {firstName} 👋
+                        </h1>
+                        <p className="m-0 text-[13px] text-[#777a83]">
+                            Here are the best opportunities waiting for you today.
+                        </p>
+                    </div>
                     <button
-                        onClick={handleDisconnect}
-                        disabled={isDisconnecting}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#FF5A5F] border border-red-100 bg-red-50 hover:bg-red-100 disabled:opacity-60 rounded-xl transition-colors"
+                        type="button"
+                        onClick={() => navigate('/creator/profile')}
+                        className="flex items-center gap-2.5 rounded-[13px] border border-[#e9e9ef] bg-white px-3 py-2"
                     >
-                        {isDisconnecting ? <Loader2 size={14} className="animate-spin" /> : <Unlink size={14} />}
-                        Disconnect Account
+                        <img src={avatar} alt="" className="h-[35px] w-[35px] rounded-full object-cover" />
+                        <div className="text-left">
+                            <strong className="block text-xs">
+                                @{username}{' '}
+                                {isVerified && (
+                                    <span className="ml-1 rounded-full bg-[#eaf9f1] px-1.5 py-0.5 text-[9px] text-[#168d58]">
+                                        Verified
+                                    </span>
+                                )}
+                            </strong>
+                            <span className="text-[10px] text-[#858891]">{nicheLine || 'Creator'}</span>
+                        </div>
                     </button>
                 </div>
 
-                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden">
-                    <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative">
-                        <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#87D8FF]/5 to-transparent pointer-events-none" />
+                <div className="mb-4 grid grid-cols-1 gap-[11px] sm:grid-cols-2 xl:grid-cols-4">
+                    <KpiCard
+                        label="Followers"
+                        icon={Users}
+                        value={formatAudience(followers)}
+                        delta={formatDelta(growthPct)}
+                        foot="vs. last 30 days"
+                        onClick={() => navigate('/creator/analytics')}
+                    />
+                    <KpiCard
+                        label="Engagement rate"
+                        icon={TrendingUp}
+                        value={`${engagement.toFixed(1)}%`}
+                        delta={formatDelta(engagementDelta)}
+                        foot={engagement >= 3 ? 'above your category avg.' : 'vs. your category avg.'}
+                        onClick={() => navigate('/creator/analytics')}
+                    />
+                    <KpiCard
+                        label="Profile strength"
+                        icon={Clock}
+                        value={`${strength}%`}
+                        foot={strength >= 100 ? 'Your profile is complete' : `${actionsLeft} action${actionsLeft === 1 ? '' : 's'} to reach 100%`}
+                        onClick={() => navigate('/creator/profile')}
+                    />
+                    <KpiCard
+                        label="Monthly earning potential"
+                        icon={Wallet}
+                        value={earnings.label}
+                        foot="estimated potential"
+                        onClick={() => navigate('/creator/payments')}
+                    />
+                </div>
 
-                        <div className="flex items-center gap-6 z-10 w-full md:w-auto">
-                            <div className="relative">
-                                <img
-                                    src={avatar}
-                                    alt="Profile"
-                                    className="w-20 h-20 rounded-[1.2rem] border border-gray-100 shadow-sm object-cover"
-                                />
-                                <div className="absolute -bottom-2 -right-2 bg-white p-1 rounded-lg shadow-sm border border-gray-100">
-                                    <Instagram size={14} className="text-[#FF5A5F]" />
-                                </div>
+                <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_.75fr]">
+                    <div className="relative min-h-[290px] overflow-hidden rounded-[21px] bg-[linear-gradient(130deg,#13151c_0%,#292332_55%,#572443_100%)] p-[27px] text-white">
+                        <div className="pointer-events-none absolute -right-[70px] -top-[120px] h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgba(233,64,138,0.72),transparent_65%)]" />
+                        <div className="pointer-events-none absolute bottom-[-170px] right-[90px] h-[240px] w-[240px] rounded-full bg-[radial-gradient(circle,rgba(255,135,184,0.32),transparent_65%)]" />
+                        <div className="relative z-[1] max-w-[58%] max-sm:max-w-full max-sm:pb-24">
+                            <div className="mb-[18px] inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/10 px-2.5 py-1.5 text-[9px] text-[#e9e9ed]">
+                                ✦ Recommended for you
                             </div>
-                            <div>
-                                <h2 className="text-2xl font-semibold text-gray-900 tracking-tight mb-1">{displayName}</h2>
-                                <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                        <Users size={14} /> {formatCount(followers)}
-                                    </span>
-                                    <span className="flex items-center gap-1 text-emerald-500">
-                                        <TrendingUp size={14} /> {Number(engagement).toFixed(1)}% ER
-                                    </span>
-                                </div>
-                                <div className="mt-2 inline-flex items-center gap-1.5 bg-[#FFE98F]/40 text-[#d48e00] px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                    <Star size={10} /> Rank {rank.rank} {rank.label}
-                                </div>
-                            </div>
+                            <h2 className="mb-2.5 text-[30px] font-extrabold leading-[1.06] tracking-[-1.3px] max-sm:text-[27px]">
+                                Turn your audience into your next big opportunity.
+                            </h2>
+                            <p className="mb-5 text-xs leading-relaxed text-[#c4c6ce]">
+                                {featured.length
+                                    ? `You've got a strong match with ${featured.length} fresh brand campaign${featured.length === 1 ? '' : 's'}.${topPayout ? ` One of them could pay up to ₹${topPayout.toLocaleString('en-IN')}.` : ''}`
+                                    : 'New brand campaigns will show up here as soon as they match your profile.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={scrollToCampaigns}
+                                className="rounded-[10px] bg-white px-3.5 py-2.5 text-[11px] font-extrabold text-[#111318]"
+                            >
+                                Explore opportunities →
+                            </button>
                         </div>
-
-                        <div className="flex flex-col items-start md:items-end w-full md:w-auto z-10 p-4 md:p-0 bg-gray-50 md:bg-transparent rounded-2xl md:rounded-none gap-3">
-                            <div>
-                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1 text-left md:text-right">
-                                    Total Earned
-                                </p>
-                                <h3 className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900 flex items-baseline gap-1">
-                                    <span className="text-2xl text-gray-400 font-medium">₹</span>
-                                    {earningsLoading ? (
-                                        <Loader2 size={28} className="animate-spin text-gray-300" />
-                                    ) : (
-                                        totalEarned.toLocaleString()
-                                    )}
-                                </h3>
-                                <div className="mt-2 flex items-center gap-2 md:justify-end">
-                                    <span className="text-xs font-medium text-gray-500">Balance:</span>
-                                    <span className="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100">
-                                        {earningsLoading ? '...' : `₹${balance.toLocaleString()}`}
-                                    </span>
-                                    {!earningsLoading && pendingBalance > 0 && (
-                                        <span className="text-xs font-medium text-amber-600">
-                                            (+₹{pendingBalance.toLocaleString()} pending)
-                                        </span>
-                                    )}
+                        <div className="absolute bottom-0 right-[15px] z-[1] h-[86%] w-[46%] max-sm:right-[-4px] max-sm:h-[45%] max-sm:w-[42%]">
+                            <div className="absolute right-[42%] top-[25%] h-[95px] w-[95px] rounded-full bg-[linear-gradient(145deg,#fff,#f9dce8)] opacity-20 blur-[1px]" />
+                            <div className="absolute bottom-[11%] right-[12%] h-[245px] w-[165px] rotate-[7deg] overflow-hidden rounded-[24px] border-[5px] border-white/12 bg-[linear-gradient(180deg,#ffb0cc,#e9408a_48%,#4b1d38)] shadow-[0_22px_40px_rgba(0,0,0,0.28)] max-sm:right-0 max-sm:rotate-[4deg] max-sm:scale-[.8]">
+                                <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_40%,rgba(255,255,255,0.28)_42%,transparent_50%)]" />
+                                <div className="absolute left-[62px] top-[23px] h-[42px] w-[42px] rounded-full bg-[#202126]" />
+                                <div className="absolute left-[35px] top-[48px] h-[132px] w-[94px] rounded-[50px_50px_24px_24px] bg-[linear-gradient(145deg,#292631,#15161b)]" />
+                                <div className="absolute bottom-3.5 left-4 text-[9px] font-extrabold uppercase tracking-wide text-white">
+                                    Creator pick
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-between overflow-x-auto gap-4">
-                        <div className="flex items-center gap-2 min-w-max">
-                            <Video size={16} className="text-gray-400" />
-                            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                                Reels Analytics
-                            </span>
-                            {syncLoading && <Loader2 size={12} className="animate-spin text-gray-400" />}
+                    <div className="flex flex-col justify-between rounded-[21px] border border-[#e9e9ef] bg-white p-[22px]">
+                        <div>
+                            <div className="text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">
+                                Your earning potential
+                            </div>
+                            <h3 className="my-2 text-[28px] font-extrabold tracking-[-1px]">{earnings.rangeLabel}</h3>
+                            <div className="text-[10px] text-[#8f9199]">Estimated monthly collaboration potential</div>
+                            <div className="my-[18px] h-2 overflow-hidden rounded-full bg-[#efeff3]">
+                                <span
+                                    className="block h-full rounded-full bg-[linear-gradient(90deg,#e9408a,#ff86b8)]"
+                                    style={{ width: `${earnings.width}%` }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-[10px] text-[#898c95]">
+                                <span>Creator score</span>
+                                <span className="font-extrabold text-[#e9408a]">{creatorScore} / 100</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 min-w-max text-sm">
-                            <StatItem label="Total" value={reelsStats.total} color="text-gray-900" onClick={() => setActiveBucket('total')} active={activeBucket === 'total'} />
-                            <StatItem label="> 1K" value={reelsStats['>1k']} color="text-[#87D8FF]" onClick={() => setActiveBucket('>1k')} active={activeBucket === '>1k'} />
-                            <StatItem label="> 10K" value={reelsStats['>10k']} color="text-[#FFA542]" onClick={() => setActiveBucket('>10k')} active={activeBucket === '>10k'} />
-                            <StatItem label="> 100K" value={reelsStats['>100k']} color="text-[#FF5A5F]" onClick={() => setActiveBucket('>100k')} active={activeBucket === '>100k'} />
-                            <StatItem label="> 1M" value={reelsStats['>1m']} color="text-emerald-500" onClick={() => setActiveBucket('>1m')} active={activeBucket === '>1m'} />
-                            <StatItem label="> 10M" value={reelsStats['>10m']} color="text-purple-500" onClick={() => setActiveBucket('>10m')} active={activeBucket === '>10m'} />
+                        <div className="mt-[17px] flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/creator/payments')}
+                                className="flex-1 rounded-[9px] border border-[#111318] bg-[#111318] py-2 text-[10px] font-bold text-white"
+                            >
+                                View estimate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/creator/profile#rates')}
+                                className="flex-1 rounded-[9px] border border-[#e9e9ef] bg-white py-2 text-[10px] font-bold"
+                            >
+                                Add rates
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold tracking-tight text-gray-900">
-                            {activeBucket === 'total' ? 'Top Reels' : `Reels · ${activeBucket} views`}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            {reelsLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
-                            <button
-                                type="button"
-                                onClick={() => slideReels(-1)}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                                aria-label="Scroll left"
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => slideReels(1)}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                                aria-label="Scroll right"
-                            >
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
+                <div ref={campaignsRef} className="mb-3 mt-6 flex items-end justify-between">
+                    <div>
+                        <h2 className="mb-1 text-[17px] font-bold tracking-[-0.5px]">Fresh opportunities for you</h2>
+                        <p className="m-0 text-[11px] text-[#8b8d95]">Personalized from your profile, audience and content</p>
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/creator/campaigns')}
+                        className="text-[11px] font-bold text-[#bd2868]"
+                    >
+                        View all →
+                    </button>
+                </div>
 
-                    {reelsLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-[#87D8FF]" />
+                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                    {campaignsLoading ? (
+                        <div className="col-span-full flex justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#e9408a]" />
                         </div>
-                    ) : carouselReels.length === 0 ? (
-                        <p className="text-sm text-gray-500 py-10 text-center">No reels in this range.</p>
+                    ) : featured.length === 0 ? (
+                        <p className="col-span-full py-8 text-sm text-[#8b8d95]">No available campaigns right now. Check back soon.</p>
                     ) : (
-                        <div
-                            ref={reelsTrackRef}
-                            className="flex gap-4 overflow-x-auto scroll-smooth snap-x pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                        >
-                            {carouselReels.map((reel) => (
-                                <button
-                                    type="button"
-                                    key={reel.id}
-                                    onClick={() => setPlayingReel(reel)}
-                                    className="group relative shrink-0 w-[180px] aspect-[9/16] snap-start overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 text-left"
-                                >
-                                    {reel.thumbnail_url || reel.media_url ? (
-                                        <img
-                                            src={reel.thumbnail_url || reel.media_url}
-                                            alt=""
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-100" />
-                                    )}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all">
-                                            <PlayCircle size={26} className="text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                                        <div className="flex items-center justify-between text-white text-xs font-semibold">
-                                            <span className="flex items-center gap-1">
-                                                <Eye size={12} /> {formatCount(reel.views ?? 0)}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Heart size={12} /> {formatCount(reel.like_count ?? 0)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        featured.map((campaign, index) => {
+                            const payout = getPayoutForRank(campaign, rank.rank);
+                            return (
+                                <CampaignGiftCard
+                                    key={campaign.id}
+                                    campaign={campaign}
+                                    payout={payout}
+                                    match={campaignMatch(campaign)}
+                                    index={index}
+                                    onView={() => setSelectedGig(toSelectedGig(campaign, rank.rank, payout))}
+                                />
+                            );
+                        })
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                            <h3 className="text-sm font-semibold tracking-tight text-gray-900 flex items-center gap-2">
-                                <Zap size={16} className="text-[#FFA542]" /> Available Music Gigs
-                            </h3>
-                            {campaignsLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
-                        </div>
-                        <div className="space-y-3">
-                            {campaignsLoading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-[#87D8FF]" />
-                                </div>
-                            ) : availableCampaigns.length === 0 ? (
-                                <p className="text-sm text-gray-500 px-2 py-4">No available gigs right now. Check back soon!</p>
-                            ) : (
-                                availableCampaigns.map((campaign) => {
-                                    const payout = getPayoutForRank(campaign, rank.rank);
-                                    const color = getCampaignColor(campaign, rank.rank);
-                                    return renderCampaignRow(campaign, payout, color, () =>
-                                        setSelectedGig({ ...campaign, payout, color }),
-                                    );
-                                })
-                            )}
-                        </div>
+                <div className="mb-3 mt-6">
+                    <h2 className="mb-1 text-[17px] font-bold tracking-[-0.5px]">Your creator progress</h2>
+                    <p className="m-0 text-[11px] text-[#8b8d95]">Small improvements can unlock better opportunities</p>
+                </div>
 
-                        {inProgressSubmissions.length > 0 && (
-                            <div className="space-y-3 pt-2">
-                                <h3 className="text-sm font-semibold tracking-tight text-gray-900 flex items-center gap-2 px-2">
-                                    <Clock size={16} className="text-amber-500" /> In Progress
-                                </h3>
-                                {inProgressSubmissions.map(renderInProgressRow)}
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_.85fr]">
+                    <div className="rounded-[18px] border border-[#e9e9ef] bg-white p-5">
+                        <div className="flex items-center gap-4">
+                            <div
+                                className="relative grid h-[72px] w-[72px] flex-none place-items-center rounded-full"
+                                style={{
+                                    background: `conic-gradient(#e9408a 0 ${strength}%, #eeeef2 ${strength}% 100%)`,
+                                }}
+                            >
+                                <span className="absolute inset-[7px] rounded-full bg-white" />
+                                <span className="relative z-[1] text-sm font-extrabold">{strength}%</span>
                             </div>
-                        )}
+                            <div>
+                                <strong className="text-[13px]">
+                                    {strength >= 100 ? 'Your profile is ready.' : 'Your profile is almost ready.'}
+                                </strong>
+                                <p className="my-1.5 text-[10px] leading-relaxed text-[#858891]">
+                                    Adding your rates and media kit can help Buzooka match you with higher-value campaigns.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/creator/profile')}
+                                    className="rounded-lg bg-[#f2f2f5] px-2.5 py-1.5 text-[9px] font-bold"
+                                >
+                                    Finish profile →
+                                </button>
+                            </div>
+                        </div>
                     </div>
-
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                            <h3 className="text-sm font-semibold tracking-tight text-gray-900">Completed Campaigns</h3>
-                            {submissionsLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
+                    <div className="flex items-center justify-between gap-3 rounded-[18px] border border-[#e9e9ef] bg-white p-5">
+                        <div className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-[#fff0f7] text-[#bd2868]">
+                            <IndianRupee size={21} />
                         </div>
-                        <div className="bg-white border border-gray-100 rounded-[1.5rem] p-2">
-                            {submissionsLoading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-[#87D8FF]" />
-                                </div>
-                            ) : !completedSubmissions.length ? (
-                                <p className="text-sm text-gray-500 px-4 py-6 text-center">No campaigns completed yet.</p>
-                            ) : (
-                                completedSubmissions.map((submission, idx) => {
-                                    const earned = submission.payout_amount ?? getPayoutForRank(submission.campaign, rank.rank);
-                                    const date = formatSubmissionDate(
-                                        submission.submitted_at ?? submission.approved_at ?? submission.createdAt,
-                                    );
-                                    return (
-                                        <div
-                                            key={submission.id}
-                                            className={`p-4 flex items-center justify-between ${
-                                                idx !== completedSubmissions.length - 1 ? 'border-b border-gray-50' : ''
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                                                    <CheckCircle2 size={16} className="text-emerald-500" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-semibold text-xs text-gray-900">
-                                                        {submission.campaign?.title ?? 'Unknown Campaign'}
-                                                    </h4>
-                                                    <p className="text-[10px] font-medium text-gray-500 flex items-center gap-2 mt-0.5">
-                                                        <span>
-                                                            <Eye size={10} className="inline mr-0.5" /> {formatCount(submission.views)}
-                                                        </span>{' '}
-                                                        • <span>{date}</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-xs font-semibold text-gray-900 block">
-                                                    ₹{earned.toLocaleString()}
-                                                </span>
-                                                <span className={`text-[10px] font-medium ${getSubmissionStatusColor(submission.status)}`}>
-                                                    {getSubmissionStatusLabel(submission.status)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
+                        <div className="min-w-0 flex-1">
+                            <strong className="text-xs">{nextMove.title}</strong>
+                            <p className="mt-1 text-[10px] leading-relaxed text-[#858891]">{nextMove.copy}</p>
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate(nextMove.to)}
+                            className="whitespace-nowrap rounded-[9px] bg-[#111318] px-2.5 py-2 text-[9px] font-extrabold text-white"
+                        >
+                            {nextMove.cta}
+                        </button>
                     </div>
                 </div>
             </div>
 
             {selectedGig && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
-                    <div
-                        className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity"
-                        onClick={() => setSelectedGig(null)}
-                    />
-                    <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                            <div className={`absolute inset-0 ${selectedGig.color} opacity-20`} />
-                            {selectedGig.track_artwork_url ? (
-                                <img
-                                    src={resolveAssetUrl(selectedGig.track_artwork_url)}
-                                    alt={selectedGig.title}
-                                    className="w-24 h-24 rounded-2xl shadow-lg object-cover z-10 transform -rotate-6"
-                                />
-                            ) : (
-                                <div className={`w-24 h-24 rounded-2xl ${selectedGig.color} shadow-lg flex items-center justify-center z-10 transform -rotate-6`}>
-                                    <Music size={40} className="text-white" />
-                                </div>
-                            )}
-                            <button
-                                onClick={() => setSelectedGig(null)}
-                                className="absolute top-4 right-4 w-8 h-8 bg-white/50 backdrop-blur rounded-full flex items-center justify-center text-gray-800 hover:bg-white z-20 transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 md:p-8">
-                            <div className="flex items-start justify-between mb-6">
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 block">
-                                        {selectedGig.brand_name || 'Brand'} Campaign
-                                    </span>
-                                    <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">{selectedGig.title}</h2>
-                                    {selectedGig.genre && (
-                                        <p className="text-sm font-medium text-gray-500 mt-1">{selectedGig.genre}</p>
-                                    )}
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                                        Your Dynamic Payout
-                                    </p>
-                                    <p className="text-2xl font-semibold text-emerald-500 tracking-tight">
-                                        ₹{selectedGig.payout.toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 mb-8">
-                                {selectedGig.spotify_link && (
-                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-[#1DB954]/10 rounded-full flex items-center justify-center">
-                                            <Link2 size={16} className="text-[#1DB954]" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold text-gray-900">Audio Source</p>
-                                            <p className="text-[10px] font-medium text-gray-500 truncate">
-                                                {selectedGig.spotify_link}
-                                            </p>
-                                        </div>
-                                        <a
-                                            href={selectedGig.spotify_link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs font-medium bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
-                                        >
-                                            Preview
-                                        </a>
-                                    </div>
-                                )}
-
-                                {selectedGig.description && (
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-gray-900 mb-2">Brief & Requirements</h4>
-                                        <p className="text-sm text-gray-600 font-medium leading-relaxed bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
-                                            {selectedGig.description}
-                                            {selectedGig.hashtags && (
-                                                <>
-                                                    {' '}
-                                                    Use hashtags:{' '}
-                                                    <strong className="text-[#87D8FF]">{selectedGig.hashtags}</strong>
-                                                </>
-                                            )}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {applyError && (
-                                <p className="text-sm text-[#FF5A5F] bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
-                                    {applyError}
-                                </p>
-                            )}
-
-                            <button
-                                onClick={() => handleApply(selectedGig)}
-                                disabled={isApplying || !instagram}
-                                className="w-full py-4 bg-[#FF5A5F] hover:bg-[#ff464b] disabled:opacity-60 text-white text-sm font-semibold rounded-xl shadow-lg shadow-[#FF5A5F]/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
-                            >
-                                {isApplying ? (
-                                    <Loader2 size={18} className="animate-spin" />
-                                ) : (
-                                    <>
-                                        Apply & Claim Audio <PlayCircle size={18} />
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {playingReel && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-                    onClick={() => setPlayingReel(null)}
-                >
-                    <div
-                        className="relative w-full max-w-sm"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => setPlayingReel(null)}
-                            className="absolute -top-12 right-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-                            aria-label="Close"
-                        >
-                            <X size={18} />
-                        </button>
-                        <video
-                            src={playingReel.media_url}
-                            poster={playingReel.thumbnail_url}
-                            controls
-                            autoPlay
-                            playsInline
-                            className="w-full max-h-[85vh] rounded-2xl bg-black object-contain"
-                        />
-                        <div className="mt-3 flex items-center justify-between text-white/90 text-sm font-semibold">
-                            <span className="flex items-center gap-1.5">
-                                <Eye size={15} /> {formatCount(playingReel.views ?? 0)}
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                <Heart size={15} /> {formatCount(playingReel.like_count ?? 0)}
-                            </span>
-                            {playingReel.permalink && (
-                                <a
-                                    href={playingReel.permalink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[#87D8FF] hover:underline"
-                                >
-                                    View on Instagram
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <GigApplyModal
+                    gig={selectedGig}
+                    applyError={applyError}
+                    isApplying={isApplying}
+                    onClose={() => setSelectedGig(null)}
+                    onApply={() => handleApply(selectedGig)}
+                />
             )}
         </>
     );

@@ -4,6 +4,8 @@ import { Provider as JotaiProvider } from 'jotai';
 import MarketingLayout from './layouts/MarketingLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import GoogleCallback from './pages/auth/GoogleCallback';
+import Onboarding from './pages/onboarding/Onboarding';
 import CampaignDetail from './pages/campaigns/CampaignDetail';
 import PrivacyPolicy from './pages/privacy-policy';
 import TermsOfService from './pages/terms-of-service';
@@ -22,6 +24,11 @@ import CreatorCampaign from './pages/creator/Campaign';
 import CreatorCampaigns from './pages/creator/Campaigns';
 import CreatorPayments from './pages/creator/Payments';
 import CreatorInsights from './pages/creator/Insights';
+import CreatorAnalytics from './pages/creator/Analytics';
+import CreatorBrands from './pages/creator/Brands';
+import CreatorProfile from './pages/creator/Profile';
+import CreatorMediaKit from './pages/creator/MediaKit';
+import CreatorSettings from './pages/creator/Settings';
 import HomeRedirect from './components/auth/HomeRedirect';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -50,6 +57,8 @@ function App() {
 
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/callback" element={<GoogleCallback />} />
+            <Route path="/onboarding" element={<Onboarding />} />
 
             {/* Brand Routes */}
             <Route path="/brand" element={<BrandLayout children={<Navigate to="/brand/dashboard" replace />} />} />
@@ -65,10 +74,15 @@ function App() {
             {/* Creator Routes */}
             <Route path="/creator" element={<CreatorLayout children={<Navigate to="/creator/dashboard" replace />} />} />
             <Route path="/creator/dashboard" element={<CreatorLayout children={<CreatorDashboard />} />} />
+            <Route path="/creator/analytics" element={<CreatorLayout children={<CreatorAnalytics />} />} />
             <Route path="/creator/insights/:id" element={<CreatorLayout children={<CreatorInsights />} />} />
             <Route path="/creator/campaigns/:id" element={<CreatorLayout children={<CreatorCampaign />} />} />
             <Route path="/creator/campaigns" element={<CreatorLayout children={<CreatorCampaigns />} />} />
+            <Route path="/creator/brands" element={<CreatorLayout children={<CreatorBrands />} />} />
+            <Route path="/creator/profile" element={<CreatorLayout children={<CreatorProfile />} />} />
+            <Route path="/creator/media-kit" element={<CreatorLayout children={<CreatorMediaKit />} />} />
             <Route path="/creator/payments" element={<CreatorLayout children={<CreatorPayments />} />} />
+            <Route path="/creator/settings" element={<CreatorLayout children={<CreatorSettings />} />} />
             <Route path="/creator/messages" element={<CreatorLayout children={<div>Creator Messages</div>} />} />
 
             {/* Admin Routes */}

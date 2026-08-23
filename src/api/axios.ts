@@ -35,7 +35,9 @@ api.interceptors.response.use(
         // Don't try to refresh token for authentication endpoints
         const isAuthRequest =
             originalRequest?.url?.includes('/auth/login') ||
-            originalRequest?.url?.includes('/auth/refresh-token');
+            originalRequest?.url?.includes('/auth/register') ||
+            originalRequest?.url?.includes('/auth/refresh-token') ||
+            originalRequest?.url?.includes('/auth/google');
 
         if (
             error.response?.status === 401 &&

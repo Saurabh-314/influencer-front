@@ -3,17 +3,25 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import api from '@/api/axios';
 import { Loader2 } from 'lucide-react';
-import { AuthPageShell } from '@/components/marketing/AuthPageShell';
+import api, { getApiErrorMessage } from '@/api/axios';
+import { getPostAuthPath, persistSession } from '@/utils/auth';
+import { startGoogleAuth } from '@/hooks/useAuthUser';
+import { AuthFieldLabel, AuthSplitShell, TrustPills } from '@/components/auth/AuthSplitShell';
+import {
+    AuthDivider,
+    AuthPasswordInput,
+    AuthSocialButton,
+    GoogleIcon,
+    authCtaClassName,
+    authInputClassName,
+} from '@/components/auth/AuthFormControls';
+import { cn } from '@/lib/utils';
 
 const registerSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
+    phone: z.string().regex(/^\d{10}$/, 'Enter a valid 10-digit mobile number'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     role: z.enum(['creator', 'admin']),
 });
@@ -23,6 +31,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function Register() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const {
@@ -40,86 +49,150 @@ export default function Register() {
         setIsLoading(true);
         setError(null);
         try {
-            await api.post('/auth/register', values);
-            navigate('/login');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed. Please try again.');
+            const response = await api.post('/auth/register', {
+                name: values.name,
+                email: values.email,
+                phone: values.phone,
+                password: values.password,
+                role: values.role,
+            });
+            const { accessToken, refreshToken, user } = response.data.data;
+            persistSession(accessToken, refreshToken, user);
+            navigate(getPostAuthPath(user));
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <AuthPageShell>
-            <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
-                    <CardDescription className="text-center">
-                        Connect your Instagram and collaborate with brands
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-white bg-red-500 rounded-md">
-                                {error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input
-                                id="name"
-                                placeholder="John Doe"
-                                {...register('name')}
-                            />
-                            {errors.name && (
-                                <p className="text-xs text-red-500">{errors.name.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                {...register('email')}
-                            />
-                            {errors.email && (
-                                <p className="text-xs text-red-500">{errors.email.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                {...register('password')}
-                            />
-                            {errors.password && (
-                                <p className="text-xs text-red-500">{errors.password.message}</p>
-                            )}
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
-                                </>
-                            ) : (
-                                'Register'
-                            )}
-                        </Button>
-                    </form>
-                </CardContent>
-                <CardFooter>
-                    <p className="text-sm text-center text-muted-foreground w-full">
-                        Already have an account?{' '}
-                        <Link to="/login" className="text-primary hover:underline">
-                            Login
-                        </Link>
-                    </p>
-                </CardFooter>
-            </Card>
-        </AuthPageShell>
+        <AuthSplitShell mode="signup">
+            <h2 className="mb-2 font-manrope text-[34px] font-extrabold tracking-[-1.5px] text-[#121318]">
+                Join Buzooka.
+            </h2>
+            <p className="mb-[26px] text-[13px] leading-relaxed text-[#7c7f88]">
+                Create your account in under a minute. We'll ask a few creator questions after you sign up.
+            </p>
+
+            <TrustPills items={['Your data is protected', 'Free to join']} />
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+                {error && (
+                    <div className="mb-3.5 rounded-xl bg-red-500 px-3 py-2.5 text-[13px] text-white">
+                        {error}
+                    </div>
+                )}
+
+                <input type="hidden" {...register('role')} />
+
+                <AuthFieldLabel htmlFor="name">Full name</AuthFieldLabel>
+                <div className="mb-3.5">
+                    <input
+                        id="name"
+                        placeholder="Your name"
+                        className={authInputClassName}
+                        {...register('name')}
+                    />
+                    {errors.name && (
+                        <p className="mt-1.5 text-[11px] text-red-500">{errors.name.message}</p>
+                    )}
+                </div>
+
+                <AuthFieldLabel htmlFor="email">Email address</AuthFieldLabel>
+                <div className="mb-3.5">
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        className={authInputClassName}
+                        {...register('email')}
+                    />
+                    {errors.email && (
+                        <p className="mt-1.5 text-[11px] text-red-500">{errors.email.message}</p>
+                    )}
+                </div>
+
+                <AuthFieldLabel htmlFor="phone">Mobile number</AuthFieldLabel>
+                <div className="relative mb-1">
+                    <div className="pointer-events-none absolute left-3.5 top-4 text-xs text-[#8a8d95]">+91</div>
+                    <input
+                        id="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="98765 43210"
+                        className={cn(authInputClassName, 'pl-[50px]')}
+                        {...register('phone')}
+                    />
+                </div>
+                <p className="mb-3.5 mt-1 text-[9px] text-[#8b8e96]">
+                    We'll use this for important account updates and verification.
+                </p>
+
+                <AuthFieldLabel htmlFor="password">Create password</AuthFieldLabel>
+                <div className="mb-2">
+                    <AuthPasswordInput
+                        id="password"
+                        placeholder="At least 6 characters"
+                        {...register('password')}
+                    />
+                    {errors.password && (
+                        <p className="mt-1.5 text-[11px] text-red-500">{errors.password.message}</p>
+                    )}
+                </div>
+
+                <p className="mb-4 mt-1.5 text-[9px] leading-relaxed text-[#999ca4]">
+                    By continuing, you agree to Buzooka's{' '}
+                    <Link to="/terms-of-service" className="font-bold text-[#bd2b6b] hover:underline">
+                        Terms of Use
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/privacy-policy" className="font-bold text-[#bd2b6b] hover:underline">
+                        Privacy Policy
+                    </Link>
+                    .
+                </p>
+
+                <button type="submit" className={cn(authCtaClassName)} disabled={isLoading}>
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                        </>
+                    ) : (
+                        'Create my account →'
+                    )}
+                </button>
+            </form>
+
+            <AuthDivider>or sign up with</AuthDivider>
+
+            <div className="grid grid-cols-1">
+                <AuthSocialButton
+                    disabled={googleLoading}
+                    onClick={async () => {
+                        setGoogleLoading(true);
+                        setError(null);
+                        try {
+                            await startGoogleAuth('creator');
+                        } catch (err: unknown) {
+                            setGoogleLoading(false);
+                            setError(getApiErrorMessage(err, 'Google sign-in is not available right now.'));
+                        }
+                    }}
+                >
+                    {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                    Google
+                </AuthSocialButton>
+            </div>
+
+            <p className="mt-[21px] text-center text-[10px] leading-relaxed text-[#8b8e96]">
+                Already have an account?{' '}
+                <Link to="/login" className="font-bold text-[#bd2b6b] no-underline hover:underline">
+                    Log in
+                </Link>
+            </p>
+        </AuthSplitShell>
     );
 }

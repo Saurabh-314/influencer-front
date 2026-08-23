@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import api from '@/api/axios';
 import { Loader2 } from 'lucide-react';
-import { AuthPageShell } from '@/components/marketing/AuthPageShell';
-import { getRoleDashboardPath, getStoredUser, isAuthenticated } from '@/utils/auth';
+import api, { getApiErrorMessage } from '@/api/axios';
+import { getPostAuthPath, getStoredUser, isAuthenticated, persistSession } from '@/utils/auth';
+import { startGoogleAuth } from '@/hooks/useAuthUser';
+import { AuthFieldLabel, AuthSplitShell, TrustPills } from '@/components/auth/AuthSplitShell';
+import {
+    AuthDivider,
+    AuthPasswordInput,
+    AuthSocialButton,
+    GoogleIcon,
+    authCtaClassName,
+    authInputClassName,
+} from '@/components/auth/AuthFormControls';
+import { cn } from '@/lib/utils';
 
 const loginSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -21,8 +27,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const [error, setError] = useState<string | null>(searchParams.get('error_description'));
 
     const {
         register,
@@ -35,7 +43,7 @@ export default function Login() {
     useEffect(() => {
         if (isAuthenticated()) {
             const user = getStoredUser();
-            navigate(getRoleDashboardPath(user?.role), { replace: true });
+            navigate(getPostAuthPath(user), { replace: true });
         }
     }, [navigate]);
 
@@ -45,85 +53,108 @@ export default function Login() {
         try {
             const response = await api.post('/auth/login', values);
             const { accessToken, refreshToken, user } = response.data.data;
-
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-            localStorage.setItem('user', JSON.stringify(user));
-
-            navigate(getRoleDashboardPath(user.role));
+            persistSession(accessToken, refreshToken, user);
+            navigate(getPostAuthPath(user));
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } };
-            setError(error?.response?.data?.message || 'Something went wrong. Please try again.');
+            setError(getApiErrorMessage(err, 'Something went wrong. Please try again.'));
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <AuthPageShell>
-            <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
-                    <CardDescription className="text-center">
-                        Enter your credentials to access your account
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-white bg-red-500 rounded-md">
-                                {error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                {...register('email')}
-                            />
-                            {errors.email && (
-                                <p className="text-xs text-red-500">{errors.email.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                                    Forgot password?
-                                </Link>
-                            </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                {...register('password')}
-                            />
-                            {errors.password && (
-                                <p className="text-xs text-red-500">{errors.password.message}</p>
-                            )}
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Logging in...
-                                </>
-                            ) : (
-                                'Login'
-                            )}
-                        </Button>
-                    </form>
-                </CardContent>
-                <CardFooter className="flex flex-col space-y-2">
-                    <p className="text-sm text-center text-muted-foreground">
-                        Don't have an account?{' '}
-                        <Link to="/register" className="text-primary hover:underline">
-                            Register
-                        </Link>
-                    </p>
-                </CardFooter>
-            </Card>
-        </AuthPageShell>
+        <AuthSplitShell mode="login">
+            <h2 className="mb-2 font-manrope text-[34px] font-extrabold tracking-[-1.5px] text-[#121318]">
+                Welcome back.
+            </h2>
+            <p className="mb-[26px] text-[13px] leading-relaxed text-[#7c7f88]">
+                Log in to see your opportunities, earnings and creator profile.
+            </p>
+
+            <TrustPills items={['Secure account', 'Creator verified']} />
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+                {error && (
+                    <div className="mb-3.5 rounded-xl bg-red-500 px-3 py-2.5 text-[13px] text-white">
+                        {error}
+                    </div>
+                )}
+
+                <AuthFieldLabel htmlFor="email">Email</AuthFieldLabel>
+                <div className="mb-3.5">
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        className={authInputClassName}
+                        {...register('email')}
+                    />
+                    {errors.email && (
+                        <p className="mt-1.5 text-[11px] text-red-500">{errors.email.message}</p>
+                    )}
+                </div>
+
+                <AuthFieldLabel htmlFor="password">Password</AuthFieldLabel>
+                <div className="mb-3.5">
+                    <AuthPasswordInput
+                        id="password"
+                        placeholder="Enter your password"
+                        {...register('password')}
+                    />
+                    {errors.password && (
+                        <p className="mt-1.5 text-[11px] text-red-500">{errors.password.message}</p>
+                    )}
+                </div>
+
+                <div className="mb-[18px] mt-0.5 flex items-center justify-between">
+                    <label className="flex items-center gap-[7px] text-[10px] text-[#777a83]">
+                        <input type="checkbox" className="accent-[#e9408a]" />
+                        Remember me
+                    </label>
+                    <Link to="/forgot-password" className="text-[10px] font-bold text-[#c12c6c] hover:underline">
+                        Forgot password?
+                    </Link>
+                </div>
+
+                <button type="submit" className={cn(authCtaClassName)} disabled={isLoading}>
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Logging in...
+                        </>
+                    ) : (
+                        'Log in →'
+                    )}
+                </button>
+            </form>
+
+            <AuthDivider>or continue with</AuthDivider>
+
+            <div className="grid grid-cols-1">
+                <AuthSocialButton
+                    disabled={googleLoading}
+                    onClick={async () => {
+                        setGoogleLoading(true);
+                        setError(null);
+                        try {
+                            await startGoogleAuth('login');
+                        } catch (err: unknown) {
+                            setGoogleLoading(false);
+                            setError(getApiErrorMessage(err, 'Google sign-in is not available right now.'));
+                        }
+                    }}
+                >
+                    {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                    Google
+                </AuthSocialButton>
+            </div>
+
+            <p className="mt-[21px] text-center text-[10px] leading-relaxed text-[#8b8e96]">
+                New to Buzooka?{' '}
+                <Link to="/register" className="font-bold text-[#bd2b6b] no-underline hover:underline">
+                    Create your creator account
+                </Link>
+            </p>
+        </AuthSplitShell>
     );
 }

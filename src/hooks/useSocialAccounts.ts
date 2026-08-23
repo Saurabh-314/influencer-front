@@ -20,7 +20,7 @@ export function useInstagramAccount() {
     return { ...query, instagram };
 }
 
-export function useConnectInstagram(returnTo: 'accounts' | 'creator' = 'accounts') {
+export function useConnectInstagram(returnTo: 'accounts' | 'creator' | 'onboarding' = 'accounts') {
     const queryClient = useQueryClient();
 
     return useMutation({
