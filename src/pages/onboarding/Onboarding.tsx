@@ -265,10 +265,14 @@ export default function Onboarding() {
     return (
         <div className="min-h-screen bg-[#f6f7fb] font-manrope text-[#111318]">
             <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-7 sm:py-7">
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                     <Link to="/" className="text-[22px] font-extrabold tracking-[-0.8px]">
                         Buzooka<span className="text-[#e9408a]">.</span>
                     </Link>
+                    <p className="order-last w-full text-center text-xs leading-relaxed text-[#777] sm:order-none sm:w-auto sm:flex-1 sm:px-4">
+                        Takes about <b className="font-semibold text-[#333]">2 minutes</b>.
+                        {' '}Most information will be filled automatically from Instagram.
+                    </p>
                     <div className="rounded-full border border-[#e8e8ee] bg-white px-3.5 py-2 text-[13px] text-[#777]">
                         Step {step} of {ONBOARDING_STEPS.length}
                     </div>
@@ -307,11 +311,6 @@ export default function Onboarding() {
                                 </div>
                             );
                         })}
-                        <div className="mt-9 rounded-[15px] border border-[#ececf2] bg-white p-[15px] text-xs leading-relaxed text-[#777]">
-                            Takes about <b>2 minutes</b>.
-                            <br />
-                            Most information will be filled automatically from Instagram.
-                        </div>
                     </aside>
 
                     <main className="flex items-center justify-center px-5 py-8 sm:px-10 lg:px-16">
