@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Check,
+    Clock,
+    IndianRupee,
     Instagram,
     List,
-    Loader2,
     MessageSquareOff,
     Shield,
     ShieldCheck,
     Sparkles,
+    Star,
+    TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCount } from '@/utils/creator';
@@ -17,14 +20,11 @@ import { getRoleDashboardPath, getStoredUser, needsOnboarding, type OnboardingDa
 import { useSaveOnboarding } from '@/hooks/useOnboarding';
 import { useConnectInstagram, useInstagramAccount, useSyncAccount } from '@/hooks/useSocialAccounts';
 import {
-    BRAND_INTERESTS,
     CONTENT_CATEGORIES,
     CREATOR_TYPES,
-    EARNING_GOALS,
     LANGUAGES,
     LOCATIONS,
     ONBOARDING_STEPS,
-    OPPORTUNITIES,
     creatorTypeLabel,
 } from '@/constants/onboarding';
 
@@ -160,26 +160,6 @@ function Progress({ value }: { value: number }) {
     );
 }
 
-function estimateEarnings(followers: number, goal?: string) {
-    let low = 5;
-    let high = 12;
-    if (followers >= 1_000_000) {
-        low = 150;
-        high = 400;
-    } else if (followers >= 100_000) {
-        low = 45;
-        high = 85;
-    } else if (followers >= 10_000) {
-        low = 18;
-        high = 40;
-    } else if (followers >= 1_000) {
-        low = 8;
-        high = 20;
-    }
-    if (goal === 'more_ops') high = Math.round(high * 0.85);
-    return { label: `₹${low}K–₹${high}K`, width: Math.min(92, 40 + Math.round(followers / 4000)) };
-}
-
 function profileStrength(data: OnboardingData, connected: boolean) {
     let score = 0;
     if (connected) score += 40;
@@ -201,7 +181,12 @@ export default function Onboarding() {
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('onboarding');
     const { data: syncData } = useSyncAccount(instagram?.id);
 
-    const [step, setStep] = useState(stored?.onboarding_step || 1);
+    const [step, setStep] = useState(() => {
+        const saved = stored?.onboarding_step || 1;
+        if (saved >= 8) return 7;
+        if (saved === 7) return 6;
+        return saved;
+    });
     const [data, setData] = useState<OnboardingData>({
         ...emptyData,
         ...(stored?.onboarding_data || {}),
@@ -231,11 +216,15 @@ export default function Onboarding() {
     const engagement = syncData?.engagement_rate ?? instagram?.engagement_rate ?? 0;
     const displayName = syncData?.profile?.name || instagram?.display_name || instagram?.username || stored?.name;
     const username = instagram?.username;
-    const earnings = useMemo(
-        () => estimateEarnings(followers, data.earningGoal),
-        [followers, data.earningGoal],
-    );
     const strength = profileStrength(data, !!instagram);
+    const avatarUrl = instagram?.profile_image || stored?.profile_image;
+    const profileMeta = [
+        instagram ? `${formatCount(followers)} followers` : null,
+        data.creatorType ? creatorTypeLabel(data.creatorType) : null,
+        data.location || data.contentCategories?.[0],
+    ]
+        .filter(Boolean)
+        .join(' · ');
 
     if (!stored) {
         return <Navigate to="/login" replace />;
@@ -281,7 +270,7 @@ export default function Onboarding() {
                         Buzooka<span className="text-[#e9408a]">.</span>
                     </Link>
                     <div className="rounded-full border border-[#e8e8ee] bg-white px-3.5 py-2 text-[13px] text-[#777]">
-                        Step {step} of 9
+                        Step {step} of {ONBOARDING_STEPS.length}
                     </div>
                 </div>
 
@@ -308,8 +297,8 @@ export default function Onboarding() {
                                             active
                                                 ? 'bg-[#e9408a] text-white'
                                                 : done
-                                                  ? 'bg-[#e9f8f0] text-[#15945a]'
-                                                  : 'bg-[#ececf2] text-[#8a8c94]',
+                                                    ? 'bg-[#e9f8f0] text-[#15945a]'
+                                                    : 'bg-[#ececf2] text-[#8a8c94]',
                                         )}
                                     >
                                         {done ? '✓' : number}
@@ -433,10 +422,11 @@ export default function Onboarding() {
                                         Connect account
                                     </p>
                                     <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
-                                        Connect your Instagram.
+                                        Connect Instagram.<br />
+                                        Get discovered. Get paid.
                                     </h1>
                                     <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        We'll automatically bring in your public profile data. No need to type follower counts or engagement rates.
+                                        Connect your Instagram to turn your content into opportunities. We'll use your profile and eligible insights to help brands discover you, match you with campaigns, and help you grow.
                                     </p>
                                     {oauthError && <p className="mb-4 text-sm font-medium text-red-500">{oauthError}</p>}
                                     <div className="mb-5 flex items-center gap-4 rounded-[19px] border border-[#e8e8ee] p-5">
@@ -457,7 +447,7 @@ export default function Onboarding() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {/* <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                         <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border border-[#e9408a] bg-[#fff4f8] px-[18px] py-[17px]">
                                             <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
                                                 <Check size={18} />
@@ -474,6 +464,44 @@ export default function Onboarding() {
                                             <div>
                                                 <div className="text-sm font-bold">Creator analytics</div>
                                                 <div className="mt-0.5 text-xs text-[#8a8c94]">Where authorized & available</div>
+                                            </div>
+                                        </div>
+                                    </div> */}
+                                    <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
+                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
+                                                <IndianRupee size={18} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold">Earn More</div>
+                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Get discovered by brands looking for creators like you and unlock paid collaboration opportunities.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
+                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
+                                                <Clock size={18} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold">Get Discovered</div>
+                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Brands can find you based on your content, audience, category and performance.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
+                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
+                                                <TrendingUp size={18} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold">Grow Your Following</div>
+                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Unlock relevant campaigns and content opportunities that can put you in front of new audiences.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
+                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
+                                                <Star size={18} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold">Build Your Reputation</div>
+                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Show brands your real content and performance so they can see your creator potential.</div>
                                             </div>
                                         </div>
                                     </div>
@@ -560,61 +588,31 @@ export default function Onboarding() {
                             {step === 6 && (
                                 <>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
-                                        Campaign preferences
+                                        Your creator goals
                                     </p>
                                     <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
-                                        What do you want from Buzooka?
+                                        Let's find the right opportunities for you.
                                     </h1>
                                     <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        Select all the opportunities you're interested in.
+                                        Now that we know your content, tell us what you want to achieve. We’ll use your profile to match you with campaigns that fit your audience and creator style.
                                     </p>
-                                    <Progress value={70} />
-                                    <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        {OPPORTUNITIES.map((item) => (
-                                            <ChoiceCard
-                                                key={item.id}
-                                                selected={!!data.opportunities?.includes(item.id)}
-                                                icon={item.icon}
-                                                title={item.title}
-                                                desc={item.desc}
-                                                onClick={() => toggleList('opportunities', item.id)}
-                                            />
-                                        ))}
+                                    <div className="mb-7 flex items-center gap-[13px] rounded-[19px] border border-[#e2e3e9] bg-white px-[17px] py-3.5">
+                                        <div
+                                            className="h-[47px] w-[47px] flex-none overflow-hidden rounded-full bg-[linear-gradient(135deg,#222,#999)] bg-cover bg-center"
+                                            style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
+                                        />
+                                        <div className="min-w-0">
+                                            <div className="text-[15px] font-bold">
+                                                {username ? `@${username}` : displayName || '@yourusername'}
+                                            </div>
+                                            {profileMeta && (
+                                                <div className="mt-1 text-[13px] text-[#858791]">{profileMeta}</div>
+                                            )}
+                                        </div>
+                                        <div className="ml-auto flex-none text-[13px] font-bold text-[#ee3c89]">
+                                            ✓ Instagram connected
+                                        </div>
                                     </div>
-                                    <label className="mb-2.5 block text-[13px] font-bold">What brands would you love to work with?</label>
-                                    <div className="mb-7 flex flex-wrap gap-2.5">
-                                        {BRAND_INTERESTS.map((item) => (
-                                            <Pill
-                                                key={item}
-                                                selected={!!data.brandInterests?.includes(item)}
-                                                onClick={() => toggleList('brandInterests', item)}
-                                            >
-                                                {item}
-                                            </Pill>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2.5">
-                                        <SecondaryButton onClick={() => setStep(instagram ? 4 : 5)}>Back</SecondaryButton>
-                                        <PrimaryButton
-                                            className="flex-1"
-                                            disabled={!data.opportunities?.length}
-                                            onClick={() => go(7)}
-                                        >
-                                            Continue →
-                                        </PrimaryButton>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 7 && (
-                                <>
-                                    <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">Your audience</p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
-                                        Almost there.
-                                    </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        Just two details Instagram can't reliably determine for you.
-                                    </p>
                                     <div className="mb-6">
                                         <label className="mb-2.5 block text-[13px] font-bold">Where are you based?</label>
                                         <div className="flex flex-wrap gap-2.5">
@@ -644,70 +642,19 @@ export default function Onboarding() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2.5">
-                                        <SecondaryButton onClick={() => setStep(6)}>Back</SecondaryButton>
+                                        <SecondaryButton onClick={() => setStep(instagram ? 4 : 5)}>Back</SecondaryButton>
                                         <PrimaryButton
                                             className="flex-1"
                                             disabled={!data.location || !data.languages?.length}
-                                            onClick={() => go(8)}
+                                            onClick={() => go(7)}
                                         >
-                                            See my earning potential →
-                                        </PrimaryButton>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 8 && (
-                                <>
-                                    <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
-                                        Creator earnings
-                                    </p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
-                                        Want to see your earning potential?
-                                    </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        We'll estimate what you could potentially earn from brand collaborations based on your audience, engagement, niche and campaign preferences.
-                                    </p>
-                                    <Progress value={88} />
-                                    <div className="mb-4 rounded-[19px] border border-[#e8e8ee] p-5">
-                                        <strong className="text-sm">What should we optimize for?</strong>
-                                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                            {EARNING_GOALS.map((item) => (
-                                                <ChoiceCard
-                                                    key={item.id}
-                                                    selected={data.earningGoal === item.id}
-                                                    icon={item.icon}
-                                                    title={item.title}
-                                                    desc={item.desc}
-                                                    onClick={() => setData({ ...data, earningGoal: item.id })}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="mb-6 rounded-[20px] border border-[#e8e8ee] p-5">
-                                        <div className="mb-2.5 flex items-center justify-between">
-                                            <strong className="text-sm">Estimated monthly potential</strong>
-                                            <b className="text-sm text-[#e9408a]">{earnings.label}</b>
-                                        </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-[#eeeef3]">
-                                            <span
-                                                className="block h-full rounded-full bg-[linear-gradient(90deg,#e9408a,#ff85b9)]"
-                                                style={{ width: `${earnings.width}%` }}
-                                            />
-                                        </div>
-                                        <p className="mt-3 text-xs text-[#8b8d96]">
-                                            Illustrative estimate using your current profile signals. Actual campaign rates vary by brand, deliverables and negotiation.
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2.5">
-                                        <SecondaryButton onClick={() => setStep(7)}>Back</SecondaryButton>
-                                        <PrimaryButton className="flex-1" onClick={() => go(9)}>
                                             Create my profile →
                                         </PrimaryButton>
                                     </div>
                                 </>
                             )}
 
-                            {step === 9 && (
+                            {step === 7 && (
                                 <div className="text-center">
                                     <div className="mx-auto mb-[22px] grid h-[78px] w-[78px] place-items-center rounded-full bg-[#eaf9f1] text-[#15945a]">
                                         <Check size={34} />
@@ -787,7 +734,7 @@ export default function Onboarding() {
                                             Add your rates, bio and portfolio later to reach 100%.
                                         </p>
                                     </div>
-                                    <PrimaryButton className="mt-[22px]" onClick={() => go(9, undefined, true)}>
+                                    <PrimaryButton className="mt-[22px]" onClick={() => go(7, undefined, true)}>
                                         Go to my dashboard →
                                     </PrimaryButton>
                                 </div>

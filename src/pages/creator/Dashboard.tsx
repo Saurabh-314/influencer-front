@@ -258,6 +258,44 @@ export default function CreatorDashboard() {
                     />
                 </div>
 
+                <div ref={campaignsRef} className="mb-3 mt-6 flex items-end justify-between">
+                    <div>
+                        <h2 className="mb-1 text-[17px] font-bold tracking-[-0.5px]">Fresh opportunities for you</h2>
+                        <p className="m-0 text-[11px] text-[#8b8d95]">Personalized from your profile, audience and content</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/creator/campaigns')}
+                        className="text-[11px] font-bold text-[#bd2868]"
+                    >
+                        View all →
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                    {campaignsLoading ? (
+                        <div className="col-span-full flex justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#e9408a]" />
+                        </div>
+                    ) : featured.length === 0 ? (
+                        <p className="col-span-full py-8 text-sm text-[#8b8d95]">No available campaigns right now. Check back soon.</p>
+                    ) : (
+                        featured.map((campaign, index) => {
+                            const payout = getPayoutForRank(campaign, rank.rank);
+                            return (
+                                <CampaignGiftCard
+                                    key={campaign.id}
+                                    campaign={campaign}
+                                    payout={payout}
+                                    match={campaignMatch(campaign)}
+                                    index={index}
+                                    onView={() => setSelectedGig(toSelectedGig(campaign, rank.rank, payout))}
+                                />
+                            );
+                        })
+                    )}
+                </div>
+
                 <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_.75fr]">
                     <div className="relative min-h-[290px] overflow-hidden rounded-[21px] bg-[linear-gradient(130deg,#13151c_0%,#292332_55%,#572443_100%)] p-[27px] text-white">
                         <div className="pointer-events-none absolute -right-[70px] -top-[120px] h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgba(233,64,138,0.72),transparent_65%)]" />
@@ -332,7 +370,7 @@ export default function CreatorDashboard() {
                     </div>
                 </div>
 
-                <div ref={campaignsRef} className="mb-3 mt-6 flex items-end justify-between">
+                {/* <div ref={campaignsRef} className="mb-3 mt-6 flex items-end justify-between">
                     <div>
                         <h2 className="mb-1 text-[17px] font-bold tracking-[-0.5px]">Fresh opportunities for you</h2>
                         <p className="m-0 text-[11px] text-[#8b8d95]">Personalized from your profile, audience and content</p>
@@ -344,9 +382,9 @@ export default function CreatorDashboard() {
                     >
                         View all →
                     </button>
-                </div>
+                </div> */}
 
-                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                {/* <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                     {campaignsLoading ? (
                         <div className="col-span-full flex justify-center py-10">
                             <Loader2 className="h-6 w-6 animate-spin text-[#e9408a]" />
@@ -368,7 +406,7 @@ export default function CreatorDashboard() {
                             );
                         })
                     )}
-                </div>
+                </div> */}
 
                 <div className="mb-3 mt-6">
                     <h2 className="mb-1 text-[17px] font-bold tracking-[-0.5px]">Your creator progress</h2>

@@ -103,11 +103,11 @@ export default function PortalSidebar({
 
     return (
         <nav
-            className={`w-[238px] flex-shrink-0 border-r bg-white flex-col justify-between h-full ${
+            className={`w-[238px] flex-shrink-0 border-r bg-white flex-col h-full max-h-full min-h-0 overflow-hidden ${
                 alwaysShow ? 'flex' : 'hidden md:flex'
             } ${accent === 'pink' ? 'border-[#e9e9ef]' : 'border-gray-100'}`}
         >
-            <div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <div className="px-4 pt-6 pb-7">
                     {accent === 'pink' ? (
                         <div className="px-3 text-[23px] font-extrabold tracking-[-1px]">
@@ -145,7 +145,7 @@ export default function PortalSidebar({
                     ))}
                 </div>
             </div>
-            <div className="p-4">
+            <div className="flex-shrink-0 p-4">
                 {footer}
                 <button
                     type="button"

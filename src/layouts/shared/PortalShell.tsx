@@ -43,7 +43,7 @@ export default function PortalShell({
     };
 
     return (
-        <div className={`flex h-screen w-full font-sans overflow-hidden ${accent === 'pink' ? 'bg-[#f7f7fa] text-[#121318] font-manrope' : 'bg-[#fcfcfc] text-gray-900 selection:bg-[#87D8FF]/30'}`}>
+        <div className={`flex h-screen min-h-0 w-full font-sans overflow-hidden ${accent === 'pink' ? 'bg-[#f7f7fa] text-[#121318] font-manrope' : 'bg-[#fcfcfc] text-gray-900 selection:bg-[#87D8FF]/30'}`}>
             <PortalSidebar
                 logoIcon={logoIcon}
                 logoIconClassName={logoIconClassName}
@@ -65,7 +65,7 @@ export default function PortalShell({
                         className="absolute inset-0 bg-black/30"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <div className="relative h-full w-[238px] shadow-xl">
+                    <div className="relative h-full min-h-0 w-[238px] overflow-hidden shadow-xl">
                         <PortalSidebar
                             logoIcon={logoIcon}
                             logoIconClassName={logoIconClassName}
