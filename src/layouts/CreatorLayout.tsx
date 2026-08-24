@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
     Bell,
     Building2,
+    Clapperboard,
     FileText,
     LayoutGrid,
     List,
@@ -18,9 +19,11 @@ import { getStoredUser } from '@/utils/auth';
 import { useInstagramAccount } from '@/hooks/useSocialAccounts';
 import { useCampaigns, useMySubmissions } from '@/hooks/useCampaigns';
 import { useNavigate } from 'react-router-dom';
+import CreatorInstagramAccounts from '@/components/creator/CreatorInstagramAccounts';
 
 const NAV_ITEMS = [
     { key: '/creator/dashboard', icon: LayoutGrid, label: 'Home', section: 'Creator' },
+    { key: '/creator/reel-studio', icon: Clapperboard, label: 'Reel Studio', section: 'Creator' },
     { key: '/creator/analytics', icon: TrendingUp, label: 'Analytics', section: 'Creator', aliases: ['/creator/insights'] },
     { key: '/creator/campaigns', icon: List, label: 'Campaigns', section: 'Creator' },
     { key: '/creator/brands', icon: Building2, label: 'Brands', section: 'Creator' },
@@ -225,6 +228,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
                 title="Buzooka"
                 accent="pink"
                 navItems={NAV_ITEMS}
+                afterNav={<CreatorInstagramAccounts />}
                 sidebarFooter={<SidebarUpgrade />}
             >
                 {children}

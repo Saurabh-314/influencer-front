@@ -27,6 +27,7 @@ export type SocialAccountRecord = {
     username: string;
     display_name?: string;
     profile_image?: string;
+    account_type?: string;
     followers_count?: number;
     engagement_rate?: number;
     is_connected?: boolean;

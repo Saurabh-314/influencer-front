@@ -14,6 +14,7 @@ type PortalShellProps = {
     navItems: PortalNavItem[];
     logoutLabel?: string;
     sidebarFooter?: ReactNode;
+    afterNav?: ReactNode;
     headerActions?: ReactNode;
     headerLeft?: ReactNode;
     accent?: 'cyan' | 'pink';
@@ -28,6 +29,7 @@ export default function PortalShell({
     navItems,
     logoutLabel,
     sidebarFooter,
+    afterNav,
     headerActions,
     headerLeft,
     accent = 'cyan',
@@ -54,6 +56,7 @@ export default function PortalShell({
                 onLogout={handleLogout}
                 logoutLabel={logoutLabel}
                 footer={sidebarFooter}
+                afterNav={afterNav}
                 accent={accent}
             />
 
@@ -76,6 +79,7 @@ export default function PortalShell({
                             onLogout={handleLogout}
                             logoutLabel={logoutLabel}
                             footer={sidebarFooter}
+                            afterNav={afterNav}
                             accent={accent}
                             alwaysShow
                         />

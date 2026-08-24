@@ -20,6 +20,7 @@ type PortalSidebarProps = {
     onLogout: () => void;
     logoutLabel?: string;
     footer?: ReactNode;
+    afterNav?: ReactNode;
     accent?: 'cyan' | 'pink';
     alwaysShow?: boolean;
 };
@@ -96,6 +97,7 @@ export default function PortalSidebar({
     onLogout,
     logoutLabel = 'Log out',
     footer,
+    afterNav,
     accent = 'cyan',
     alwaysShow = false,
 }: PortalSidebarProps) {
@@ -144,6 +146,7 @@ export default function PortalSidebar({
                         </div>
                     ))}
                 </div>
+                {afterNav}
             </div>
             <div className="flex-shrink-0 p-4">
                 {footer}

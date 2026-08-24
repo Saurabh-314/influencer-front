@@ -12,15 +12,22 @@ export function useSocialAccounts() {
     });
 }
 
-export function useInstagramAccount() {
+export function useInstagramAccounts() {
     const query = useSocialAccounts();
-    const instagram = query.data?.find(
-        (account) => account.platform === 'instagram' && account.is_connected
+    const accounts = (query.data ?? []).filter(
+        (account) => account.platform === 'instagram' && account.is_connected,
     );
-    return { ...query, instagram };
+    return { ...query, accounts };
 }
 
-export function useConnectInstagram(returnTo: 'accounts' | 'creator' | 'onboarding' = 'accounts') {
+export function useInstagramAccount() {
+    const query = useInstagramAccounts();
+    return { ...query, instagram: query.accounts[0] };
+}
+
+export function useConnectInstagram(
+    returnTo: 'accounts' | 'creator' | 'onboarding' | 'reel-studio' | 'settings' = 'accounts',
+) {
     const queryClient = useQueryClient();
 
     return useMutation({

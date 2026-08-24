@@ -13,8 +13,8 @@ export function getInstagramOAuthErrorMessage(
     if (error === 'instagram_graph_access_denied') {
         return (
             'Instagram login succeeded, but Meta rejected API access for this account. '
-            + 'The app must be Live with Advanced Access approved for instagram_business_basic '
-            + 'and instagram_business_manage_insights, and your Instagram account must be a '
+            + 'The app must be Live with Advanced Access approved for instagram_business_basic, '
+            + 'instagram_business_manage_insights and instagram_business_content_publish, and your Instagram account must be a '
             + 'Professional (Business or Creator) account.'
         );
     }
