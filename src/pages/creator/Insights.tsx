@@ -185,6 +185,55 @@ export default function CreatorInsights() {
                         {top_posts.map((item: {
                             id: string;
                             media_url?: string;
+                            thumbnail_url?: string;
+                            permalink?: string;
+                            like_count?: number;
+                            comments_count?: number;
+                            views?: number;
+                            timestamp?: string;
+                        }) => (
+                            <a
+                                key={item.id}
+                                href={item.permalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="aspect-square relative group overflow-hidden rounded-2xl border border-gray-100 shadow-sm block"
+                            >
+                                {item.thumbnail_url ? (
+                                    <img
+                                        src={item.thumbnail_url}
+                                        alt=""
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-100" />
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                    <div className="flex justify-between text-white font-semibold text-xs">
+                                        <span className="flex items-center gap-1">
+                                            <Heart size={12} /> {formatCount(item.like_count ?? 0)}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <MessageCircle size={12} /> {item.comments_count ?? 0}
+                                        </span>
+                                    </div>
+                                    {item.views != null && (
+                                        <p className="text-[10px] text-gray-200 mt-1 font-medium">
+                                            {formatCount(item.views)} views
+                                        </p>
+                                    )}
+                                    {item.timestamp && (
+                                        <p className="text-[10px] text-gray-300 mt-0.5 font-medium">
+                                            {new Date(item.timestamp).toLocaleDateString()}
+                                        </p>
+                                    )}
+                                </div>
+                            </a>
+                        ))}
+                        {/* {top_posts.map((item: {
+                            id: string;
+                            media_url?: string;
+                            thumbnail_url?: string;
                             like_count?: number;
                             comments_count?: number;
                             views?: number;
@@ -193,7 +242,7 @@ export default function CreatorInsights() {
                             <div key={item.id} className="aspect-square relative group overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
                                 {item.media_url ? (
                                     <img
-                                        src={item.media_url}
+                                        src={item.thumbnail_url}
                                         alt=""
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
@@ -221,7 +270,7 @@ export default function CreatorInsights() {
                                     )}
                                 </div>
                             </div>
-                        ))}
+                        ))} */}
                     </div>
                 </div>
             )}
