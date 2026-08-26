@@ -199,9 +199,9 @@ export default function CreatorInsights() {
                                 rel="noopener noreferrer"
                                 className="aspect-square relative group overflow-hidden rounded-2xl border border-gray-100 shadow-sm block"
                             >
-                                {item.thumbnail_url ? (
+                                {item.thumbnail_url || item.media_url ? (
                                     <img
-                                        src={item.thumbnail_url}
+                                        src={item.thumbnail_url || item.media_url}
                                         alt=""
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
