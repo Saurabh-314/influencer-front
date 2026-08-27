@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     useCancelReelPost,
     useReelPosts,
@@ -158,6 +158,7 @@ async function readVideoMeta(file: File) {
 }
 
 export default function CreatorReelStudio() {
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { accounts } = useInstagramAccounts();
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('reel-studio');
@@ -465,6 +466,17 @@ export default function CreatorReelStudio() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    const editId = Number(searchParams.get('edit') || 0);
+    useEffect(() => {
+        if (!editId || !posts.length) return;
+        const post = posts.find((item) => item.id === editId);
+        if (!post) return;
+        loadPost(post);
+        searchParams.delete('edit');
+        setSearchParams(searchParams, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editId, posts]);
+
     const videoPreview = previewUrl || (videoUrl ? resolveAssetUrl(videoUrl) : '');
     const thumbPreview = thumbnailUrl ? resolveAssetUrl(thumbnailUrl) : '';
     const saving = saveReel.isPending || uploadReel.isPending;
@@ -498,14 +510,23 @@ export default function CreatorReelStudio() {
                             Upload one reel and decide exactly where and when it goes live.
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => void save('scheduled')}
-                        disabled={saving || hasPastSchedule}
-                        className="rounded-[10px] bg-[#111318] px-3.5 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-60"
-                    >
-                        {saving ? 'Working…' : 'Add to schedule →'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/creator/bulk-reels')}
+                            className="rounded-[10px] border border-[#e9e9ef] bg-white px-3.5 py-2.5 text-[10px] font-extrabold"
+                        >
+                            Bulk upload
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void save('scheduled')}
+                            disabled={saving || hasPastSchedule}
+                            className="rounded-[10px] bg-[#111318] px-3.5 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-60"
+                        >
+                            {saving ? 'Working…' : 'Add to schedule →'}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid items-start gap-3.5 lg:grid-cols-[235px_minmax(0,1fr)_320px]">
@@ -956,9 +977,17 @@ export default function CreatorReelStudio() {
                     {upcoming.length === 0 ? (
                         <p className="py-4 text-[11px] text-[#8a8c94]">No scheduled reels yet. Upload a video and add it to the schedule.</p>
                     ) : (
-                        upcoming.map((post) => {
+                        <>
+                            <div className="hidden border-b border-[#f0f0f3] pb-2 text-[8px] uppercase tracking-[0.4px] text-[#8b8d95] md:grid md:grid-cols-[52px_minmax(0,1.2fr)_minmax(170px,1fr)_130px_90px_110px] md:items-center md:gap-2.5">
+                                <span />
+                                <span>Reel</span>
+                                <span>Instagram account</span>
+                                <span>Schedule</span>
+                                <span>Status</span>
+                                <span className="text-right">Actions</span>
+                            </div>
+                            {upcoming.map((post) => {
                             const enabled = (post.targets || []).filter((target) => target.enabled);
-                            const handles = enabled.map((target) => `@${target.social_account?.username || 'account'}`).join(' · ');
                             const next = enabled
                                 .map((target) => target.scheduled_at)
                                 .filter(Boolean)
@@ -968,7 +997,7 @@ export default function CreatorReelStudio() {
                             return (
                                 <div
                                     key={post.id}
-                                    className="grid grid-cols-[52px_1fr] items-center gap-2.5 border-t border-[#f0f0f3] py-2.5 md:grid-cols-[65px_1fr_115px_90px_85px] md:gap-2.5"
+                                    className="grid grid-cols-[52px_minmax(0,1fr)_minmax(120px,0.9fr)] items-center gap-2.5 border-t border-[#f0f0f3] py-2.5 md:grid-cols-[52px_minmax(0,1.2fr)_minmax(170px,1fr)_130px_90px_110px]"
                                 >
                                     <div
                                         className="relative h-12 overflow-hidden rounded-lg bg-gradient-to-br from-[#dba5a9] via-[#e9408a] to-[#27232a]"
@@ -980,23 +1009,49 @@ export default function CreatorReelStudio() {
                                     >
                                         <span className="absolute left-1/2 top-1/2 -translate-x-[35%] -translate-y-1/2 border-y-[6px] border-l-[8px] border-y-transparent border-l-white" />
                                     </div>
-                                    <div>
-                                        <strong className="block text-[10px]">{post.original_filename || post.video_filename || 'reel.mp4'}</strong>
-                                        <span className="mt-0.5 block text-[8px] text-[#8b8e96]">{handles || 'No accounts'}</span>
+                                    <div className="min-w-0">
+                                        <strong className="block truncate text-[10px]">{post.original_filename || post.video_filename || 'reel.mp4'}</strong>
+                                        <span className="mt-0.5 block text-[8px] text-[#8b8e96]">
+                                            {post.video_size ? `${formatFileSize(post.video_size)} · ` : ''}
+                                            {formatDuration(post.duration_seconds)}
+                                        </span>
                                         {failedTarget?.error_message && (
                                             <span className="mt-1 block text-[8px] text-[#c23b3b]">{failedTarget.error_message}</span>
                                         )}
                                     </div>
+                                    <div className="min-w-0 space-y-1.5">
+                                        {enabled.length === 0 ? (
+                                            <span className="text-[8px] text-[#8b8e96]">No account</span>
+                                        ) : enabled.map((target, index) => {
+                                            const account: SocialAccountRecord = {
+                                                id: String(target.social_account?.id || target.social_account_id),
+                                                platform: 'instagram',
+                                                username: target.social_account?.username || 'account',
+                                                display_name: target.social_account?.display_name,
+                                                profile_image: target.social_account?.profile_image,
+                                                account_type: target.social_account?.account_type,
+                                                followers_count: target.social_account?.followers_count,
+                                                is_connected: target.social_account?.is_connected,
+                                            };
+                                            return (
+                                                <div key={target.id} className="flex min-w-0 items-center gap-2">
+                                                    <div
+                                                        className="h-7 w-7 flex-none rounded-full"
+                                                        style={accountAvatarStyle(account, index)}
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <strong className="block truncate text-[9px]">@{account.username}</strong>
+                                                        <span className="mt-0.5 block truncate text-[8px] text-[#8b8e96]">
+                                                            {formatCount(account.followers_count || 0)} followers
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                     <div className="hidden md:block">
                                         <strong className="block text-[9px]">{formatIstLabel(next)}</strong>
-                                        <span className="mt-0.5 block text-[8px] text-[#8b8e96]">
-                                            {enabled[0]?.social_account ? accountRoleLabel({
-                                                id: String(enabled[0].social_account.id),
-                                                platform: 'instagram',
-                                                username: enabled[0].social_account.username,
-                                                account_type: enabled[0].social_account.account_type,
-                                            }, 0) : 'Scheduled'}
-                                        </span>
+                                        <span className="mt-0.5 block text-[8px] text-[#8b8e96]">IST</span>
                                     </div>
                                     <div className={`hidden rounded-full px-2 py-1 text-center text-[8px] font-bold md:block ${statusClass(status.toLowerCase())}`}>
                                         {status}
@@ -1032,7 +1087,8 @@ export default function CreatorReelStudio() {
                                     </div>
                                 </div>
                             );
-                        })
+                            })}
+                        </>
                     )}
                 </div>
             </div>

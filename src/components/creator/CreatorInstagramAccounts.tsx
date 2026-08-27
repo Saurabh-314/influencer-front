@@ -25,9 +25,11 @@ export default function CreatorInstagramAccounts() {
     const { accounts, isLoading } = useInstagramAccounts();
     const returnTo = location.pathname.startsWith('/creator/reel-studio')
         ? 'reel-studio'
-        : location.pathname.startsWith('/creator/settings')
-            ? 'settings'
-            : 'creator';
+        : location.pathname.startsWith('/creator/bulk-reels')
+            ? 'bulk-reels'
+            : location.pathname.startsWith('/creator/settings')
+                ? 'settings'
+                : 'creator';
     const { mutate: connectInstagram, isPending } = useConnectInstagram(returnTo);
 
     return (

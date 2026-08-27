@@ -26,7 +26,7 @@ export function useInstagramAccount() {
 }
 
 export function useConnectInstagram(
-    returnTo: 'accounts' | 'creator' | 'onboarding' | 'reel-studio' | 'settings' = 'accounts',
+    returnTo: 'accounts' | 'creator' | 'onboarding' | 'reel-studio' | 'bulk-reels' | 'settings' = 'accounts',
 ) {
     const queryClient = useQueryClient();
 

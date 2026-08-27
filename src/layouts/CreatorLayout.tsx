@@ -10,6 +10,7 @@ import {
     Search,
     Settings,
     TrendingUp,
+    Upload,
     User,
     Wallet,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import CreatorInstagramAccounts from '@/components/creator/CreatorInstagramAccou
 const NAV_ITEMS = [
     { key: '/creator/dashboard', icon: LayoutGrid, label: 'Home', section: 'Creator' },
     { key: '/creator/reel-studio', icon: Clapperboard, label: 'Reel Studio', section: 'Creator' },
+    { key: '/creator/bulk-reels', icon: Upload, label: 'Bulk Reel Upload', section: 'Creator' },
     { key: '/creator/analytics', icon: TrendingUp, label: 'Analytics', section: 'Creator', aliases: ['/creator/insights'] },
     { key: '/creator/campaigns', icon: List, label: 'Campaigns', section: 'Creator' },
     { key: '/creator/brands', icon: Building2, label: 'Brands', section: 'Creator' },

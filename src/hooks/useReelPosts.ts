@@ -127,6 +127,37 @@ export function useUploadReelMedia() {
     });
 }
 
+export function useSaveBulkReelPosts() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            status,
+            stopOnFail,
+            posts,
+        }: {
+            status: 'draft' | 'scheduled';
+            stopOnFail?: boolean;
+            posts: ReelPostPayload[];
+        }) => {
+            const res = await api.post('/reels/bulk', {
+                status,
+                stop_on_fail: Boolean(stopOnFail),
+                posts,
+            });
+            const data = res.data.data || {};
+            return {
+                posts: (Array.isArray(data) ? data : data.posts || []) as ReelPost[],
+                errors: (Array.isArray(data) ? [] : data.errors || []) as { index: number; message: string }[],
+                message: res.data.message as string | undefined,
+            };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['reel-posts'] });
+        },
+    });
+}
+
 export function useSaveReelPost() {
     const queryClient = useQueryClient();
 

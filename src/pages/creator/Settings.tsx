@@ -121,6 +121,9 @@ export default function CreatorSettings() {
                         <button type="button" onClick={() => navigate('/creator/reel-studio')} className="rounded-[9px] border border-[#e9e9ef] px-3 py-2 text-[11px] font-bold">
                             Reel Studio
                         </button>
+                        <button type="button" onClick={() => navigate('/creator/bulk-reels')} className="rounded-[9px] border border-[#e9e9ef] px-3 py-2 text-[11px] font-bold">
+                            Bulk upload
+                        </button>
                         <button type="button" onClick={() => navigate('/creator/profile')} className="rounded-[9px] border border-[#e9e9ef] px-3 py-2 text-[11px] font-bold">
                             Edit profile
                         </button>

@@ -30,6 +30,7 @@ import CreatorProfile from './pages/creator/Profile';
 import CreatorMediaKit from './pages/creator/MediaKit';
 import CreatorSettings from './pages/creator/Settings';
 import CreatorReelStudio from './pages/creator/ReelStudio';
+import CreatorBulkReelUpload from './pages/creator/BulkReelUpload';
 import HomeRedirect from './components/auth/HomeRedirect';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -76,6 +77,7 @@ function App() {
             <Route path="/creator" element={<CreatorLayout children={<Navigate to="/creator/dashboard" replace />} />} />
             <Route path="/creator/dashboard" element={<CreatorLayout children={<CreatorDashboard />} />} />
             <Route path="/creator/reel-studio" element={<CreatorLayout children={<CreatorReelStudio />} />} />
+            <Route path="/creator/bulk-reels" element={<CreatorLayout children={<CreatorBulkReelUpload />} />} />
             <Route path="/creator/analytics" element={<CreatorLayout children={<CreatorAnalytics />} />} />
             <Route path="/creator/insights/:id" element={<CreatorLayout children={<CreatorInsights />} />} />
             <Route path="/creator/campaigns/:id" element={<CreatorLayout children={<CreatorCampaign />} />} />
