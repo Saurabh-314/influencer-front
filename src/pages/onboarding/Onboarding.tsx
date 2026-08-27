@@ -425,7 +425,7 @@ export default function Onboarding() {
                                         Get discovered. Get paid.
                                     </h1>
                                     <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        Connect your Instagram to turn your content into opportunities. We'll use your profile and eligible insights to help brands discover you, match you with campaigns, and help you grow.
+                                        Connect your Instagram through Facebook Login. You need a Professional Instagram account linked to a Facebook Page so we can read insights, publish reels, and attach Instagram music.
                                     </p>
                                     {oauthError && <p className="mb-4 text-sm font-medium text-red-500">{oauthError}</p>}
                                     <div className="mb-5 flex items-center gap-4 rounded-[19px] border border-[#e8e8ee] p-5">
@@ -540,7 +540,7 @@ export default function Onboarding() {
                                             {
                                                 icon: Shield,
                                                 title: 'Official Meta authorization',
-                                                body: 'Instagram access is handled through Meta\'s official OAuth flow — Buzooka never asks you for your Instagram password.',
+                                                body: 'Instagram is connected through Facebook Login for Business — Buzooka never asks you for your Instagram or Facebook password.',
                                             },
                                             {
                                                 icon: List,

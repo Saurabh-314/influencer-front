@@ -73,7 +73,7 @@ export default function CreatorInstagramAccounts() {
                 disabled={isPending}
                 className="mt-2.5 w-full rounded-[10px] border border-dashed border-[#d9dae1] bg-white px-2 py-2 text-[10px] font-bold text-[#6d7079]"
             >
-                {isPending ? 'Opening Instagram…' : '+ Add Instagram account'}
+                {isPending ? 'Opening Meta…' : '+ Add Instagram account'}
             </button>
         </div>
     );

@@ -43,6 +43,36 @@ export function useConnectInstagram(
     });
 }
 
+export type InstagramAudioTrack = {
+    audio_id: string;
+    title: string;
+    artist?: string | null;
+    thumbnail_url?: string | null;
+    duration_ms?: number | null;
+    audio_type?: string | null;
+    preview_url?: string | null;
+};
+
+export function useSearchInstagramAudio(accountId?: string | number) {
+    return useMutation({
+        mutationFn: async ({
+            q,
+            audioType = 'music',
+        }: {
+            q?: string;
+            audioType?: 'music' | 'original_sound';
+        }) => {
+            if (!accountId) {
+                throw new Error('Connect an Instagram account to search music');
+            }
+            const res = await api.get(`/social-accounts/${accountId}/audio`, {
+                params: { q: q || undefined, audio_type: audioType },
+            });
+            return res.data.data as InstagramAudioTrack[];
+        },
+    });
+}
+
 export function useDisconnectAccount() {
     const queryClient = useQueryClient();
 

@@ -70,7 +70,7 @@ export default function CreatorSettings() {
                     <div className="mb-3 flex items-start justify-between gap-3">
                         <div>
                             <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">Instagram</div>
-                            <p className="text-[12px] text-[#8b8d95]">Add more professional accounts to post the same reel everywhere.</p>
+                            <p className="text-[12px] text-[#8b8d95]">Connect through Facebook Login. The Instagram account must be Professional and linked to a Facebook Page.</p>
                         </div>
                         <button
                             type="button"

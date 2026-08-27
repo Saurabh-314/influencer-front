@@ -12,6 +12,8 @@ import {
 import {
     useConnectInstagram,
     useInstagramAccounts,
+    useSearchInstagramAudio,
+    type InstagramAudioTrack,
 } from '@/hooks/useSocialAccounts';
 import { accountAvatarStyle } from '@/components/creator/CreatorInstagramAccounts';
 import { getApiErrorMessage } from '@/api/axios';
@@ -192,6 +194,10 @@ export default function CreatorReelStudio() {
     const [dragging, setDragging] = useState(false);
     const [banner, setBanner] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
+    const [selectedAudio, setSelectedAudio] = useState<InstagramAudioTrack | null>(null);
+    const [audioQuery, setAudioQuery] = useState('');
+    const [audioType, setAudioType] = useState<'music' | 'original_sound'>('music');
+    const [audioResults, setAudioResults] = useState<InstagramAudioTrack[]>([]);
 
     const oauthError = getInstagramOAuthErrorMessage(
         searchParams.get('error'),
@@ -229,6 +235,25 @@ export default function CreatorReelStudio() {
         () => accounts.filter((account) => selectedIds.includes(String(account.id))),
         [accounts, selectedIds],
     );
+    const audioAccountId = selectedIds[0] || (accounts[0] ? String(accounts[0].id) : undefined);
+    const searchAudio = useSearchInstagramAudio(audioAccountId);
+
+    useEffect(() => {
+        if (!audioAccountId) {
+            setAudioResults([]);
+            return;
+        }
+        const handle = window.setTimeout(async () => {
+            try {
+                const tracks = await searchAudio.mutateAsync({ q: audioQuery, audioType });
+                setAudioResults(tracks);
+            } catch {
+                setAudioResults([]);
+            }
+        }, 400);
+        return () => window.clearTimeout(handle);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [audioAccountId, audioQuery, audioType]);
 
     const nextPublish = useMemo(() => {
         const stamps = selectedAccounts
@@ -300,6 +325,9 @@ export default function CreatorReelStudio() {
         setVideoFilename('');
         setVideoMime('');
         setThumbnailUrl('');
+        setSelectedAudio(null);
+        setAudioQuery('');
+        setAudioResults([]);
     }
 
     async function handleVideoFile(file: File) {
@@ -377,6 +405,11 @@ export default function CreatorReelStudio() {
             suggest_hashtags: suggestHashtags,
             add_first_comment: addFirstComment,
             first_comment: firstComment,
+            ig_audio_id: selectedAudio?.audio_id || null,
+            ig_audio_title: selectedAudio?.title || null,
+            ig_audio_artist: selectedAudio?.artist || null,
+            ig_audio_thumbnail_url: selectedAudio?.thumbnail_url || null,
+            ig_audio_duration_ms: selectedAudio?.duration_ms || null,
             status,
             targets: accounts.map((account) => {
                 const id = String(account.id);
@@ -449,6 +482,14 @@ export default function CreatorReelStudio() {
         setDuration(post.duration_seconds || null);
         setDimensions(post.width && post.height ? { width: post.width, height: post.height } : null);
         setPreviewUrl(resolveAssetUrl(post.video_url));
+        setSelectedAudio(post.ig_audio_id ? {
+            audio_id: post.ig_audio_id,
+            title: post.ig_audio_title || 'Selected audio',
+            artist: post.ig_audio_artist,
+            thumbnail_url: post.ig_audio_thumbnail_url,
+            duration_ms: post.ig_audio_duration_ms,
+        } : null);
+        setAudioQuery('');
         const nextSelected = (post.targets || [])
             .filter((target) => target.enabled)
             .map((target) => String(target.social_account_id));
@@ -553,7 +594,7 @@ export default function CreatorReelStudio() {
                                     onClick={() => connectInstagram()}
                                     className="mt-2 text-[10px] font-bold text-[#be2d6b]"
                                 >
-                                    {isConnecting ? 'Opening Instagram…' : 'Connect Instagram'}
+                                    {isConnecting ? 'Opening Meta…' : 'Connect Instagram'}
                                 </button>
                             </div>
                         ) : (
@@ -762,6 +803,94 @@ export default function CreatorReelStudio() {
                                         Add
                                     </button>
                                 </div>
+                            </div>
+                            <div className="mt-3">
+                                <div className="mb-2 flex items-center justify-between text-[10px] font-extrabold">
+                                    <span>Instagram music</span>
+                                    <span className="font-medium text-[#a0a2aa]">Optional · Meta catalog</span>
+                                </div>
+                                {selectedAudio ? (
+                                    <div className="flex items-center gap-2 rounded-[11px] border border-[#e9e9ef] bg-[#fafafd] p-2">
+                                        {selectedAudio.thumbnail_url ? (
+                                            <img
+                                                src={selectedAudio.thumbnail_url}
+                                                alt=""
+                                                className="h-9 w-9 flex-none rounded-md object-cover"
+                                            />
+                                        ) : (
+                                            <div className="grid h-9 w-9 flex-none place-items-center rounded-md bg-[#111318] text-[9px] font-bold text-white">♪</div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <strong className="block truncate text-[10px]">{selectedAudio.title}</strong>
+                                            <span className="block truncate text-[8px] text-[#8a8d95]">
+                                                {selectedAudio.artist || 'Instagram audio'}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedAudio(null)}
+                                            className="text-[9px] font-bold text-[#be2d6b]"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="mb-1.5 flex gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setAudioType('music')}
+                                                className={`rounded-full px-2 py-1 text-[8px] font-bold ${
+                                                    audioType === 'music' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
+                                                }`}
+                                            >
+                                                Music
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAudioType('original_sound')}
+                                                className={`rounded-full px-2 py-1 text-[8px] font-bold ${
+                                                    audioType === 'original_sound' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
+                                                }`}
+                                            >
+                                                Original sounds
+                                            </button>
+                                        </div>
+                                        <input
+                                            value={audioQuery}
+                                            onChange={(event) => setAudioQuery(event.target.value)}
+                                            placeholder={audioAccountId ? 'Search Instagram music' : 'Connect Instagram to search music'}
+                                            disabled={!audioAccountId}
+                                            className="h-9 w-full rounded-[9px] border border-[#e9e9ef] px-2 text-[11px] outline-none disabled:bg-[#f7f7f9]"
+                                        />
+                                        <div className="mt-1.5 max-h-[160px] overflow-auto">
+                                            {searchAudio.isPending && (
+                                                <p className="px-1 py-2 text-[9px] text-[#8a8d95]">Searching…</p>
+                                            )}
+                                            {audioResults.map((track) => (
+                                                <button
+                                                    key={track.audio_id}
+                                                    type="button"
+                                                    onClick={() => setSelectedAudio(track)}
+                                                    className="flex w-full items-center gap-2 rounded-[9px] px-1 py-1.5 text-left hover:bg-[#fafafd]"
+                                                >
+                                                    {track.thumbnail_url ? (
+                                                        <img src={track.thumbnail_url} alt="" className="h-7 w-7 flex-none rounded object-cover" />
+                                                    ) : (
+                                                        <div className="grid h-7 w-7 flex-none place-items-center rounded bg-[#f3f3f6] text-[9px]">♪</div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <strong className="block truncate text-[10px]">{track.title}</strong>
+                                                        <span className="block truncate text-[8px] text-[#8a8d95]">{track.artist || 'Instagram audio'}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="mt-1 text-[8px] leading-relaxed text-[#9a9ca4]">
+                                            This catalog is Meta’s third-party audio, not the full in-app Instagram library. Leave empty to publish with the video’s original sound.
+                                        </p>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </section>

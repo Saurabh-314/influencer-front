@@ -621,7 +621,7 @@ export default function CreatorBulkReelUpload() {
                                 onClick={() => connectInstagram()}
                                 className="mt-2 text-[10px] font-bold text-[#be2d6b]"
                             >
-                                {isConnecting ? 'Opening Instagram…' : 'Connect Instagram'}
+                                {isConnecting ? 'Opening Meta…' : 'Connect Instagram'}
                             </button>
                         </div>
                     ) : (

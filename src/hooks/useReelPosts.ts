@@ -43,6 +43,11 @@ export type ReelPost = {
     suggest_hashtags: boolean;
     add_first_comment: boolean;
     first_comment?: string | null;
+    ig_audio_id?: string | null;
+    ig_audio_title?: string | null;
+    ig_audio_artist?: string | null;
+    ig_audio_thumbnail_url?: string | null;
+    ig_audio_duration_ms?: number | null;
     status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'cancelled';
     createdAt?: string;
     updatedAt?: string;
@@ -77,6 +82,11 @@ export type ReelPostPayload = {
     suggest_hashtags?: boolean;
     add_first_comment?: boolean;
     first_comment?: string;
+    ig_audio_id?: string | null;
+    ig_audio_title?: string | null;
+    ig_audio_artist?: string | null;
+    ig_audio_thumbnail_url?: string | null;
+    ig_audio_duration_ms?: number | null;
     status: 'draft' | 'scheduled';
     targets: {
         social_account_id: number;
