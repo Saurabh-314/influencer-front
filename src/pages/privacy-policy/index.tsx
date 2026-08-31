@@ -63,7 +63,7 @@ const PrivacyPolicy = () => {
                 <div className="space-y-4 pt-4">
                     <h3 className="text-xl font-medium text-foreground">B. Information from Authorized Platform Connections</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        When creators connect their Instagram account through Meta Platform authorization,
+                        When creators connect their Instagram account through Instagram Login or optional Meta authorization,
                         {COMPANY.productName} may access information permitted by the applicable APIs and
                         granted permissions, including:
                     </p>

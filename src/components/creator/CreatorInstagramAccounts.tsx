@@ -41,7 +41,7 @@ export default function CreatorInstagramAccounts() {
                 <p className="px-3 text-[10px] text-[#8a8c94]">Loading accounts…</p>
             ) : accounts.length === 0 ? (
                 <p className="px-3 mb-2 text-[10px] leading-relaxed text-[#8a8c94]">
-                    Connect a professional Instagram account to schedule reels.
+                    Connect a professional Instagram account to join campaigns and share insights.
                 </p>
             ) : (
                 <div className="space-y-2">
@@ -73,7 +73,7 @@ export default function CreatorInstagramAccounts() {
                 disabled={isPending}
                 className="mt-2.5 w-full rounded-[10px] border border-dashed border-[#d9dae1] bg-white px-2 py-2 text-[10px] font-bold text-[#6d7079]"
             >
-                {isPending ? 'Opening Meta…' : '+ Add Instagram account'}
+                {isPending ? 'Opening Instagram…' : '+ Add Instagram account'}
             </button>
         </div>
     );

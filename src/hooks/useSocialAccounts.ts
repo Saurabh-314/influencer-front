@@ -43,6 +43,42 @@ export function useConnectInstagram(
     });
 }
 
+export type MetaStatus = {
+    connected: boolean;
+    instagram_professional_account: boolean;
+    page_connected: boolean;
+    can_use_reels_studio: boolean;
+    accounts: SocialAccountRecord[];
+};
+
+export function useMetaStatus() {
+    return useQuery({
+        queryKey: ['social-accounts', 'meta-status'],
+        queryFn: async () => {
+            const res = await api.get('/social-accounts/meta/status');
+            return res.data.data as MetaStatus;
+        },
+    });
+}
+
+export function useConnectMeta(
+    returnTo: 'accounts' | 'creator' | 'onboarding' | 'reel-studio' | 'bulk-reels' | 'settings' = 'reel-studio',
+) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            const res = await api.get(`/social-accounts/connect/meta?returnTo=${returnTo}`);
+            if (res.data.url) {
+                window.location.href = res.data.url;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['social-accounts'] });
+        },
+    });
+}
+
 export type InstagramAudioTrack = {
     audio_id: string;
     title: string;

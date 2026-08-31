@@ -11,6 +11,7 @@ import {
 } from '@/hooks/useReelPosts';
 import {
     useConnectInstagram,
+    useConnectMeta,
     useInstagramAccounts,
     useSearchInstagramAudio,
     type InstagramAudioTrack,
@@ -20,8 +21,10 @@ import { getApiErrorMessage } from '@/api/axios';
 import { formatCount, type SocialAccountRecord } from '@/utils/creator';
 import { formatFileSize, resolveAssetUrl } from '@/utils/image';
 import {
+    accountHasMeta,
     clearInstagramOAuthSearchParams,
     getInstagramOAuthErrorMessage,
+    getOAuthSuccessMessage,
 } from '@/utils/socialAccounts';
 
 const HASHTAG_SUGGESTIONS = ['#creator', '#reels', '#music', '#lifestyle', '#india', '#viral'];
@@ -163,7 +166,10 @@ export default function CreatorReelStudio() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { accounts } = useInstagramAccounts();
+    const studioAccounts = useMemo(() => accounts.filter(accountHasMeta), [accounts]);
+    const needsMeta = accounts.length > 0 && studioAccounts.length === 0;
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('reel-studio');
+    const { mutate: connectMeta, isPending: isConnectingMeta } = useConnectMeta('reel-studio');
     const { data: posts = [], isLoading: postsLoading } = useReelPosts();
     const uploadReel = useUploadReelMedia();
     const saveReel = useSaveReelPost();
@@ -203,11 +209,11 @@ export default function CreatorReelStudio() {
         searchParams.get('error'),
         searchParams.get('error_description'),
     );
-    const oauthSuccess = searchParams.get('success') === 'connected';
+    const oauthSuccess = getOAuthSuccessMessage(searchParams.get('success'));
 
     useEffect(() => {
         if (!oauthSuccess && !oauthError) return;
-        if (oauthSuccess) setNotice('Instagram account connected. You can schedule this reel to it now.');
+        if (oauthSuccess) setNotice(oauthSuccess);
         if (oauthError) setBanner({ type: 'error', text: oauthError });
         clearInstagramOAuthSearchParams(searchParams);
         setSearchParams(searchParams, { replace: true });
@@ -221,21 +227,21 @@ export default function CreatorReelStudio() {
     }, [previewUrl]);
 
     useEffect(() => {
-        if (!accounts.length || didInitAccounts.current) return;
+        if (!studioAccounts.length || didInitAccounts.current) return;
         didInitAccounts.current = true;
-        const first = String(accounts[0].id);
+        const first = String(studioAccounts[0].id);
         setSelectedIds([first]);
         setSchedules((current) => ({
             ...current,
             [first]: current[first] || defaultSchedule(0),
         }));
-    }, [accounts]);
+    }, [studioAccounts]);
 
     const selectedAccounts = useMemo(
-        () => accounts.filter((account) => selectedIds.includes(String(account.id))),
-        [accounts, selectedIds],
+        () => studioAccounts.filter((account) => selectedIds.includes(String(account.id))),
+        [studioAccounts, selectedIds],
     );
-    const audioAccountId = selectedIds[0] || (accounts[0] ? String(accounts[0].id) : undefined);
+    const audioAccountId = selectedIds[0] || (studioAccounts[0] ? String(studioAccounts[0].id) : undefined);
     const searchAudio = useSearchInstagramAudio(audioAccountId);
 
     useEffect(() => {
@@ -303,7 +309,7 @@ export default function CreatorReelStudio() {
     }
 
     function selectAll() {
-        const ids = accounts.map((account) => String(account.id));
+        const ids = studioAccounts.map((account) => String(account.id));
         ids.forEach((id, index) => ensureSchedule(id, index));
         setSelectedIds(ids);
     }
@@ -411,7 +417,7 @@ export default function CreatorReelStudio() {
             ig_audio_thumbnail_url: selectedAudio?.thumbnail_url || null,
             ig_audio_duration_ms: selectedAudio?.duration_ms || null,
             status,
-            targets: accounts.map((account) => {
+            targets: studioAccounts.map((account) => {
                 const id = String(account.id);
                 const schedule = schedules[id];
                 const enabled = selectedIds.includes(id);
@@ -577,14 +583,14 @@ export default function CreatorReelStudio() {
                                 <h2 className="mb-1 text-[13px] font-bold">Connected accounts</h2>
                                 <p className="m-0 text-[9px] text-[#8a8d95]">Choose where this reel should go</p>
                             </div>
-                            {accounts.length > 0 && (
+                            {studioAccounts.length > 0 && (
                                 <button type="button" onClick={selectAll} className="text-[9px] font-bold text-[#be2d6b]">
                                     Select all
                                 </button>
                             )}
                         </div>
                         <div className="mb-2.5 text-[9px] text-[#787b83]">
-                            {accounts.length} account{accounts.length === 1 ? '' : 's'} connected
+                            {studioAccounts.length} account{studioAccounts.length === 1 ? '' : 's'} ready for Reels Studio
                         </div>
                         {accounts.length === 0 ? (
                             <div className="rounded-[13px] border border-dashed border-[#d9dae1] p-3 text-center">
@@ -594,12 +600,24 @@ export default function CreatorReelStudio() {
                                     onClick={() => connectInstagram()}
                                     className="mt-2 text-[10px] font-bold text-[#be2d6b]"
                                 >
-                                    {isConnecting ? 'Opening Meta…' : 'Connect Instagram'}
+                                    {isConnecting ? 'Opening Instagram…' : 'Connect Instagram'}
+                                </button>
+                            </div>
+                        ) : needsMeta ? (
+                            <div className="rounded-[13px] border border-dashed border-[#d9dae1] p-3 text-center">
+                                <p className="text-[10px] font-bold text-[#111318]">Meta connection required</p>
+                                <p className="mt-1 text-[10px] text-[#8a8c94]">Connect Meta Account to use Reels Studio. Your Instagram connection stays intact.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => connectMeta()}
+                                    className="mt-2 text-[10px] font-bold text-[#be2d6b]"
+                                >
+                                    {isConnectingMeta ? 'Opening Meta…' : 'Connect Meta Account'}
                                 </button>
                             </div>
                         ) : (
                             <div className="grid gap-2">
-                                {accounts.map((account, index) => {
+                                {studioAccounts.map((account, index) => {
                                     const id = String(account.id);
                                     const selected = selectedIds.includes(id);
                                     return (
@@ -859,7 +877,7 @@ export default function CreatorReelStudio() {
                                         <input
                                             value={audioQuery}
                                             onChange={(event) => setAudioQuery(event.target.value)}
-                                            placeholder={audioAccountId ? 'Search Instagram music' : 'Connect Instagram to search music'}
+                                            placeholder={audioAccountId ? 'Search Instagram music' : 'Connect Meta to search music'}
                                             disabled={!audioAccountId}
                                             className="h-9 w-full rounded-[9px] border border-[#e9e9ef] px-2 text-[11px] outline-none disabled:bg-[#f7f7f9]"
                                         />
@@ -902,7 +920,7 @@ export default function CreatorReelStudio() {
                                 <p className="m-0 text-[9px] text-[#8a8d95]">Set individual publishing times</p>
                             </div>
                             <div className="grid gap-2">
-                                {accounts.map((account, index) => {
+                                {studioAccounts.map((account, index) => {
                                     const id = String(account.id);
                                     const selected = selectedIds.includes(id);
                                     const schedule = schedules[id] || defaultSchedule(index);
@@ -987,12 +1005,12 @@ export default function CreatorReelStudio() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    const next = accounts.find((account) => !selectedIds.includes(String(account.id)));
+                                    const next = studioAccounts.find((account) => !selectedIds.includes(String(account.id)));
                                     if (next) {
-                                        toggleAccount(String(next.id), accounts.findIndex((account) => account.id === next.id));
+                                        toggleAccount(String(next.id), studioAccounts.findIndex((account) => account.id === next.id));
                                         return;
                                     }
-                                    connectInstagram();
+                                    connectMeta();
                                 }}
                                 className="mt-2 w-full rounded-[9px] border border-dashed border-[#d9dae1] bg-[#fafafd] py-2 text-[9px] font-bold text-[#777b84]"
                             >
@@ -1022,7 +1040,7 @@ export default function CreatorReelStudio() {
                                 {saving ? 'Scheduling…' : `Schedule ${selectedIds.length || 0} reel${selectedIds.length === 1 ? '' : 's'} →`}
                             </button>
                             <div className="mt-2 text-center text-[8px] leading-relaxed text-[#a0a2aa]">
-                                Publishing uses the authorized Meta/Instagram connection for each selected account. Videos are stored on this server.
+                                Publishing uses the optional Meta connection for each selected account. Videos are stored on this server.
                             </div>
                             <button
                                 type="button"
