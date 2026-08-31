@@ -4,15 +4,19 @@ import { AccountVerification } from '@/components/creator/AccountVerification';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import {
     useConnectInstagram,
+    useConnectMeta,
     useDisconnectAccount,
     useInstagramAccounts,
+    useMetaStatus,
 } from '@/hooks/useSocialAccounts';
 import { accountAvatarStyle } from '@/components/creator/CreatorInstagramAccounts';
 import { formatCount } from '@/utils/creator';
 import { logout } from '@/utils/auth';
 import {
+    accountHasMeta,
     clearInstagramOAuthSearchParams,
     getInstagramOAuthErrorMessage,
+    getOAuthSuccessMessage,
 } from '@/utils/socialAccounts';
 
 export default function CreatorSettings() {
@@ -20,7 +24,9 @@ export default function CreatorSettings() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { data: user } = useAuthUser();
     const { accounts } = useInstagramAccounts();
+    const { data: metaStatus } = useMetaStatus();
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('settings');
+    const { mutate: connectMeta, isPending: isConnectingMeta } = useConnectMeta('settings');
     const { mutate: disconnectAccount, isPending: isDisconnecting } = useDisconnectAccount();
 
     const [oauthNotice, setOauthNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
@@ -28,11 +34,11 @@ export default function CreatorSettings() {
         searchParams.get('error'),
         searchParams.get('error_description'),
     );
-    const oauthSuccess = searchParams.get('success') === 'connected';
+    const oauthSuccess = getOAuthSuccessMessage(searchParams.get('success'));
 
     useEffect(() => {
         if (!oauthSuccess && !oauthError) return;
-        if (oauthSuccess) setOauthNotice({ type: 'ok', text: 'Instagram account connected.' });
+        if (oauthSuccess) setOauthNotice({ type: 'ok', text: oauthSuccess });
         if (oauthError) setOauthNotice({ type: 'error', text: oauthError });
         clearInstagramOAuthSearchParams(searchParams);
         setSearchParams(searchParams, { replace: true });
@@ -70,7 +76,7 @@ export default function CreatorSettings() {
                     <div className="mb-3 flex items-start justify-between gap-3">
                         <div>
                             <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">Instagram</div>
-                            <p className="text-[12px] text-[#8b8d95]">Connect through Facebook Login. The Instagram account must be Professional and linked to a Facebook Page.</p>
+                            <p className="text-[12px] text-[#8b8d95]">Connect with Instagram Login. A Professional Instagram account (Business or Creator) is required. Facebook is not needed for campaigns, insights, or profile features.</p>
                         </div>
                         <button
                             type="button"
@@ -95,6 +101,7 @@ export default function CreatorSettings() {
                                         <p className="text-sm font-bold">@{account.username}</p>
                                         <p className="text-[11px] text-[#8b8d95]">
                                             {formatCount(account.followers_count || 0)} followers · Connected
+                                            {accountHasMeta(account) ? ' · Meta ready' : ''}
                                         </p>
                                     </div>
                                     <button
@@ -112,6 +119,37 @@ export default function CreatorSettings() {
                                 </div>
                             ))}
                         </div>
+                    )}
+                </div>
+
+                <div className="rounded-[18px] border border-[#e9e9ef] bg-white p-5">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                            <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">Meta (optional)</div>
+                            <p className="text-[12px] text-[#8b8d95]">Required only for Reels Studio, bulk publishing, and Instagram audio search. Your Instagram Login connection stays independent.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => connectMeta()}
+                            disabled={isConnectingMeta}
+                            className="rounded-[9px] bg-[#111318] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
+                        >
+                            {isConnectingMeta ? 'Opening…' : metaStatus?.connected ? 'Reconnect Meta' : 'Connect Meta Account'}
+                        </button>
+                    </div>
+                    {metaStatus?.connected ? (
+                        <div className="rounded-[13px] border border-[#d8efe3] bg-[#f3fbf6] px-3 py-3">
+                            <p className="text-sm font-bold text-[#147a4b]">Connected ✓</p>
+                            <p className="mt-1 text-[11px] text-[#147a4b]">
+                                Instagram Professional Account {metaStatus.instagram_professional_account ? 'Connected ✓' : 'missing'}
+                                {metaStatus.page_connected ? ' · Facebook Page Connected ✓' : ''}
+                            </p>
+                            <p className="mt-1 text-[11px] text-[#8b8d95]">
+                                {metaStatus.accounts.map((account) => `@${account.username}`).join(', ')}
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-[#8b8d95]">Connect Meta Account to use Reels Studio.</p>
                     )}
                 </div>
 

@@ -10,6 +10,7 @@ import {
 } from '@/hooks/useReelPosts';
 import {
     useConnectInstagram,
+    useConnectMeta,
     useInstagramAccounts,
 } from '@/hooks/useSocialAccounts';
 import { accountAvatarStyle } from '@/components/creator/CreatorInstagramAccounts';
@@ -17,8 +18,10 @@ import { getApiErrorMessage } from '@/api/axios';
 import { formatCount, type SocialAccountRecord } from '@/utils/creator';
 import { formatFileSize, resolveAssetUrl } from '@/utils/image';
 import {
+    accountHasMeta,
     clearInstagramOAuthSearchParams,
     getInstagramOAuthErrorMessage,
+    getOAuthSuccessMessage,
 } from '@/utils/socialAccounts';
 import {
     HASHTAG_SUGGESTIONS,
@@ -95,7 +98,10 @@ export default function CreatorBulkReelUpload() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { accounts } = useInstagramAccounts();
+    const studioAccounts = useMemo(() => accounts.filter(accountHasMeta), [accounts]);
+    const needsMeta = accounts.length > 0 && studioAccounts.length === 0;
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('bulk-reels');
+    const { mutate: connectMeta, isPending: isConnectingMeta } = useConnectMeta('bulk-reels');
     const { data: posts = [], isLoading: postsLoading } = useReelPosts();
     const uploadReel = useUploadReelMedia();
     const saveBulk = useSaveBulkReelPosts();
@@ -127,11 +133,11 @@ export default function CreatorBulkReelUpload() {
         searchParams.get('error'),
         searchParams.get('error_description'),
     );
-    const oauthSuccess = searchParams.get('success') === 'connected';
+    const oauthSuccess = getOAuthSuccessMessage(searchParams.get('success'));
 
     useEffect(() => {
         if (!oauthSuccess && !oauthError) return;
-        if (oauthSuccess) setNotice('Instagram account connected. Select it below for this bulk batch.');
+        if (oauthSuccess) setNotice(oauthSuccess);
         if (oauthError) setBanner({ type: 'error', text: oauthError });
         clearInstagramOAuthSearchParams(searchParams);
         setSearchParams(searchParams, { replace: true });
@@ -155,8 +161,8 @@ export default function CreatorBulkReelUpload() {
     }, []);
 
     const selectedAccounts = useMemo(
-        () => accounts.filter((account) => selectedIds.includes(String(account.id))),
-        [accounts, selectedIds],
+        () => studioAccounts.filter((account) => selectedIds.includes(String(account.id))),
+        [studioAccounts, selectedIds],
     );
 
     const accountById = useMemo(() => {
@@ -237,7 +243,7 @@ export default function CreatorBulkReelUpload() {
     }
 
     function selectAllAccounts() {
-        let ids = accounts.map((account) => String(account.id));
+        let ids = studioAccounts.map((account) => String(account.id));
         if (reels.length && reels.length < ids.length) ids = ids.slice(0, reels.length);
         setSelectedIds(ids);
         mapAccounts(ids, randomizeOn);
@@ -621,12 +627,24 @@ export default function CreatorBulkReelUpload() {
                                 onClick={() => connectInstagram()}
                                 className="mt-2 text-[10px] font-bold text-[#be2d6b]"
                             >
-                                {isConnecting ? 'Opening Meta…' : 'Connect Instagram'}
+                                {isConnecting ? 'Opening Instagram…' : 'Connect Instagram'}
+                            </button>
+                        </div>
+                    ) : needsMeta ? (
+                        <div className="rounded-[13px] border border-dashed border-[#d9dae1] p-4 text-center">
+                            <p className="text-[10px] font-bold text-[#111318]">Meta connection required</p>
+                            <p className="mt-1 text-[10px] text-[#8a8c94]">Connect Meta Account to use bulk publishing. Your Instagram connection stays intact.</p>
+                            <button
+                                type="button"
+                                onClick={() => connectMeta()}
+                                className="mt-2 text-[10px] font-bold text-[#be2d6b]"
+                            >
+                                {isConnectingMeta ? 'Opening Meta…' : 'Connect Meta Account'}
                             </button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                            {accounts.map((account, index) => {
+                            {studioAccounts.map((account, index) => {
                                 const id = String(account.id);
                                 const selected = selectedIds.includes(id);
                                 return (
@@ -1064,7 +1082,7 @@ export default function CreatorBulkReelUpload() {
                             {saveBulk.isPending ? 'Scheduling…' : `Schedule ${reels.length} reels →`}
                         </button>
                         <div className="mt-2 text-center text-[8px] leading-relaxed text-[#a0a2aa]">
-                            Publishing is handled through the authorized Meta / Instagram API connection for each selected account.
+                            Publishing is handled through the optional Meta connection for each selected account.
                         </div>
                     </aside>
                 </div>

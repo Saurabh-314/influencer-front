@@ -32,6 +32,11 @@ export type SocialAccountRecord = {
     engagement_rate?: number;
     is_connected?: boolean;
     createdAt?: string;
+    auth_method?: 'instagram_login' | 'facebook_login' | string;
+    fb_page_id?: string | null;
+    has_meta_connection?: boolean;
+    can_use_reels_studio?: boolean;
+    page_connected?: boolean;
 };
 
 export function formatCount(value: number): string {

@@ -79,7 +79,7 @@ export default function DataDeletion() {
             <section className="space-y-4">
                 <h2 className="text-2xl font-semibold text-foreground">Meta / Instagram Data</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                    If you connected your Instagram account through Meta Platform authorization, deleting your
+                    If you connected your Instagram account through Instagram Login or optional Meta authorization, deleting your
                     {COMPANY.productName} account will revoke our access to your Instagram data stored on our
                     platform. You can also revoke access directly in your Instagram account settings under
                     "Apps and Websites."

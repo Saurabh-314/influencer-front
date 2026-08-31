@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/api/axios';
 import { getStoredUser, updateStoredUser, type StoredUser } from '@/utils/auth';
 
+
 function applyUser(user: StoredUser) {
     updateStoredUser(user);
     return user;

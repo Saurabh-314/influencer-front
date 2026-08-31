@@ -246,7 +246,7 @@ export default function Onboarding() {
         }
     };
 
-    const startMeta = () => {
+    const startInstagram = () => {
         setConnecting(true);
         saveOnboarding.mutate({ step: 5, data });
         connectInstagram();
@@ -425,7 +425,7 @@ export default function Onboarding() {
                                         Get discovered. Get paid.
                                     </h1>
                                     <p className="mb-7 text-base leading-relaxed text-[#70727b]">
-                                        Connect your Instagram through Facebook Login. You need a Professional Instagram account linked to a Facebook Page so we can read insights, publish reels, and attach Instagram music.
+                                        Connect your Instagram with Instagram Login. You need a Professional Instagram account (Business or Creator) so we can read your profile, insights, and campaign activity. Facebook Login is not required for this step.
                                     </p>
                                     {oauthError && <p className="mb-4 text-sm font-medium text-red-500">{oauthError}</p>}
                                     <div className="mb-5 flex items-center gap-4 rounded-[19px] border border-[#e8e8ee] p-5">
@@ -514,7 +514,7 @@ export default function Onboarding() {
                                         </PrimaryButton>
                                     </div>
                                     <p className="mt-4 text-xs text-[#8b8d96]">
-                                        You'll be redirected to Meta's official authorization flow.
+                                        You'll be redirected to Instagram's official authorization flow.
                                     </p>
                                 </>
                             )}
@@ -523,7 +523,7 @@ export default function Onboarding() {
                                 <div className="mx-auto max-w-[560px] text-center">
                                     <div className="mb-3.5 inline-flex items-center gap-1.5 rounded-full bg-[#f4f4f7] px-2.5 py-1.5 text-[10px] font-bold text-[#555860]">
                                         <ShieldCheck size={14} />
-                                        Secure connection through Meta
+                                        Secure connection through Instagram
                                     </div>
                                     <div className="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-[3px] border-[#eeeef2] border-t-[#e9408a]" />
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
@@ -533,14 +533,14 @@ export default function Onboarding() {
                                         You're being connected securely.
                                     </h1>
                                     <p className="mb-6 text-base leading-relaxed text-[#70727b]">
-                                        Buzooka is preparing the official Meta authorization screen. You will review exactly what Instagram allows us to access before anything is connected.
+                                        Buzooka is preparing the official Instagram authorization screen. You will review exactly what Instagram allows us to access before anything is connected.
                                     </p>
                                     <div className="mb-6 rounded-[18px] border border-[#e8e8ee] bg-[#fbfbfd] px-5 py-[18px] text-left">
                                         {[
                                             {
                                                 icon: Shield,
-                                                title: 'Official Meta authorization',
-                                                body: 'Instagram is connected through Facebook Login for Business — Buzooka never asks you for your Instagram or Facebook password.',
+                                                title: 'Official Instagram authorization',
+                                                body: 'Instagram is connected through Instagram Login — Buzooka never asks you for your Instagram password. Facebook Login is optional later for Reels Studio.',
                                             },
                                             {
                                                 icon: List,
@@ -555,7 +555,7 @@ export default function Onboarding() {
                                             {
                                                 icon: ShieldCheck,
                                                 title: 'You stay in control',
-                                                body: 'You can review, approve or cancel the connection on Meta\'s screen before access is granted.',
+                                                body: 'You can review, approve or cancel the connection on Instagram\'s screen before access is granted.',
                                             },
                                         ].map((item, index) => (
                                             <div
@@ -574,12 +574,12 @@ export default function Onboarding() {
                                     </div>
                                     <div className="flex gap-2.5">
                                         <SecondaryButton onClick={() => setStep(4)}>Back</SecondaryButton>
-                                        <PrimaryButton className="flex-1" disabled={isConnecting || connecting} onClick={startMeta}>
-                                            {isConnecting || connecting ? 'Opening Meta...' : 'Continue to Meta →'}
+                                        <PrimaryButton className="flex-1" disabled={isConnecting || connecting} onClick={startInstagram}>
+                                            {isConnecting || connecting ? 'Opening Instagram...' : 'Continue to Instagram →'}
                                         </PrimaryButton>
                                     </div>
                                     <p className="mt-4 text-[10px] leading-relaxed text-[#999ba3]">
-                                        Buzooka does not collect your Instagram password. Access is granted by Meta using the permissions you approve.
+                                        Buzooka does not collect your Instagram password. Access is granted by Instagram using the permissions you approve.
                                     </p>
                                 </div>
                             )}
