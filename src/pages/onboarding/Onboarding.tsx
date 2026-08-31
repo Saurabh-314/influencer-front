@@ -4,6 +4,7 @@ import {
     Check,
     Instagram,
     List,
+    LogOut,
     MessageSquareOff,
     Shield,
     ShieldCheck,
@@ -11,8 +12,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCount } from '@/utils/creator';
+import { getApiErrorMessage } from '@/api/axios';
 import { getInstagramOAuthErrorMessage, clearInstagramOAuthSearchParams } from '@/utils/socialAccounts';
-import { getRoleDashboardPath, getStoredUser, needsOnboarding, type OnboardingData } from '@/utils/auth';
+import { getRoleDashboardPath, getStoredUser, logout, needsOnboarding, type OnboardingData } from '@/utils/auth';
 import { useSaveOnboarding } from '@/hooks/useOnboarding';
 import { useConnectInstagram, useInstagramAccount, useSyncAccount } from '@/hooks/useSocialAccounts';
 import {
@@ -243,25 +245,29 @@ export default function Onboarding() {
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('onboarding');
     const { data: syncData } = useSyncAccount(instagram?.id);
 
-    const [step, setStep] = useState(() => mapSavedStep(stored?.onboarding_step || 1));
-    const [data, setData] = useState<OnboardingData>({
-        ...emptyData,
-        ...(stored?.onboarding_data || {}),
-    });
-    const [connecting, setConnecting] = useState(false);
-
     const oauthError = getInstagramOAuthErrorMessage(
         searchParams.get('error'),
         searchParams.get('error_description'),
     );
     const oauthSuccess = searchParams.get('success') === 'connected';
 
+    const [step, setStep] = useState(() => (oauthError ? 4 : mapSavedStep(stored?.onboarding_step || 1)));
+    const [data, setData] = useState<OnboardingData>({
+        ...emptyData,
+        ...(stored?.onboarding_data || {}),
+    });
+    const [connecting, setConnecting] = useState(false);
+    const [connectError, setConnectError] = useState<string | null>(oauthError);
+
     useEffect(() => {
         if (!oauthSuccess && !oauthError) return;
         if (oauthSuccess) {
+            setConnectError(null);
             setStep(5);
             saveOnboarding.mutate({ step: 5, data });
         } else {
+            setConnecting(false);
+            setConnectError(oauthError);
             setStep(4);
         }
         clearInstagramOAuthSearchParams(searchParams);
@@ -305,8 +311,14 @@ export default function Onboarding() {
 
     const startInstagram = () => {
         setConnecting(true);
+        setConnectError(null);
         saveOnboarding.mutate({ step: 4, data });
-        connectInstagram();
+        connectInstagram(undefined, {
+            onError: (err) => {
+                setConnecting(false);
+                setConnectError(getApiErrorMessage(err, 'Could not start Instagram connection. Please try again.'));
+            },
+        });
     };
 
     const toggleList = (key: 'contentCategories' | 'opportunities' | 'brandInterests' | 'languages', value: string, max?: number) => {
@@ -326,17 +338,27 @@ export default function Onboarding() {
                     <Link to="/" className="text-[20px] font-extrabold tracking-[-0.8px] sm:text-[22px]">
                         Buzooka<span className="text-[#e9408a]">.</span>
                     </Link>
-                    <p className="hidden flex-1 px-4 text-center text-xs leading-relaxed text-[#777] sm:block">
+                    <p className="hidden flex-1 px-4 text-center text-xs leading-relaxed text-[#777] lg:block">
                         Takes about <b className="font-semibold text-[#333]">2 minutes</b>.
                         {' '}Most information will be filled automatically from Instagram.
                     </p>
-                    <div className="rounded-full border border-[#e8e8ee] bg-white px-3 py-1.5 text-xs text-[#777] sm:px-3.5 sm:py-2 sm:text-[13px]">
-                        Step {step} of {ONBOARDING_STEPS.length}
+                    <div className="flex items-center gap-2 sm:gap-2.5">
+                        <div className="rounded-full border border-[#e8e8ee] bg-white px-3 py-1.5 text-xs text-[#777] sm:px-3.5 sm:py-2 sm:text-[13px]">
+                            Step {step} of {ONBOARDING_STEPS.length}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => logout(navigate)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#e8e8ee] bg-white px-3 py-1.5 text-xs font-semibold text-[#555] transition hover:border-[#e9408a] hover:bg-[#fff4f8] hover:text-[#e9408a] sm:px-3.5 sm:py-2 sm:text-[13px]"
+                        >
+                            <LogOut size={13} />
+                            Log out
+                        </button>
                     </div>
                 </div>
 
                 <div className="grid min-h-0 overflow-hidden border-0 bg-white shadow-none sm:min-h-[720px] sm:rounded-3xl sm:border sm:border-[#e7e7ed] sm:shadow-[0_18px_60px_rgba(20,20,40,0.07)] lg:grid-cols-[250px_1fr]">
-                    <aside className="hidden border-r border-[#ededf2] bg-[#fafafd] px-5 py-7 lg:block">
+                    <aside className="hidden flex-col border-r border-[#ededf2] bg-[#fafafd] px-5 py-7 lg:flex">
                         <p className="mb-[18px] ml-2.5 mt-1 text-xs uppercase tracking-[1px] text-[#999]">
                             Creator onboarding
                         </p>
@@ -368,6 +390,24 @@ export default function Onboarding() {
                                 </div>
                             );
                         })}
+                        <div className="mt-auto border-t border-[#ededf2] pt-5">
+                            {(stored.email || stored.name) && (
+                                <p
+                                    className="mb-1.5 truncate px-2.5 text-xs text-[#8a8c94]"
+                                    title={stored.email || stored.name}
+                                >
+                                    {stored.email || stored.name}
+                                </p>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => logout(navigate)}
+                                className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2.5 text-sm font-semibold text-[#555] transition hover:bg-[#fff0f7] hover:text-[#e9408a]"
+                            >
+                                <LogOut size={15} />
+                                Log out
+                            </button>
+                        </div>
                     </aside>
 
                     <main className="flex items-start justify-center px-4 py-6 pb-10 sm:px-10 sm:py-8 lg:px-16">
@@ -484,7 +524,24 @@ export default function Onboarding() {
                                     <p className={bodyClass}>
                                         Connect your Instagram with Instagram Login. You need a Professional Instagram account (Business or Creator) so we can read your profile, insights, and campaign activity. Facebook Login is not required for this step.
                                     </p>
-                                    {oauthError && <p className="mb-4 text-sm font-medium text-red-500">{oauthError}</p>}
+                                    {connectError && (
+                                        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3">
+                                            <p className="text-sm font-medium text-red-600">{connectError}</p>
+                                            <p className="mt-1.5 text-xs leading-relaxed text-[#8b8d96]">
+                                                {/already connected|another (user|account)/i.test(connectError)
+                                                    ? 'This Instagram is linked to a different Buzooka account. '
+                                                    : 'If this account has an issue, '}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => logout(navigate)}
+                                                    className="font-bold text-[#e9408a] underline-offset-2 hover:underline"
+                                                >
+                                                    log out
+                                                </button>
+                                                {' '}and sign in with another account, or try a different Instagram.
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="mb-5 flex items-center gap-3 rounded-[19px] border border-[#e8e8ee] p-3.5 sm:gap-4 sm:p-4">
                                         <div className="grid h-11 w-11 flex-none place-items-center rounded-2xl bg-[#111318] text-white sm:h-[54px] sm:w-[54px]">
                                             <Instagram size={22} />

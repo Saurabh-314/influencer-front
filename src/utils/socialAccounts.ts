@@ -32,6 +32,10 @@ export function getInstagramOAuthErrorMessage(
         );
     }
 
+    if (error === 'account_already_connected') {
+        return 'This Instagram account is already connected to another Buzooka account.';
+    }
+
     return error.replace(/_/g, ' ');
 }
 
