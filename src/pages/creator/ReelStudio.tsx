@@ -204,6 +204,7 @@ export default function CreatorReelStudio() {
     const [audioQuery, setAudioQuery] = useState('');
     const [audioType, setAudioType] = useState<'music' | 'original_sound'>('music');
     const [audioResults, setAudioResults] = useState<InstagramAudioTrack[]>([]);
+    const [audioSearchError, setAudioSearchError] = useState<string | null>(null);
 
     const oauthError = getInstagramOAuthErrorMessage(
         searchParams.get('error'),
@@ -247,14 +248,17 @@ export default function CreatorReelStudio() {
     useEffect(() => {
         if (!audioAccountId) {
             setAudioResults([]);
+            setAudioSearchError(null);
             return;
         }
         const handle = window.setTimeout(async () => {
             try {
                 const tracks = await searchAudio.mutateAsync({ q: audioQuery, audioType });
                 setAudioResults(tracks);
-            } catch {
+                setAudioSearchError(null);
+            } catch (error) {
                 setAudioResults([]);
+                setAudioSearchError(getApiErrorMessage(error, 'Could not search Instagram music'));
             }
         }, 400);
         return () => window.clearTimeout(handle);
@@ -334,6 +338,7 @@ export default function CreatorReelStudio() {
         setSelectedAudio(null);
         setAudioQuery('');
         setAudioResults([]);
+        setAudioSearchError(null);
     }
 
     async function handleVideoFile(file: File) {
@@ -884,6 +889,20 @@ export default function CreatorReelStudio() {
                                         <div className="mt-1.5 max-h-[160px] overflow-auto">
                                             {searchAudio.isPending && (
                                                 <p className="px-1 py-2 text-[9px] text-[#8a8d95]">Searching…</p>
+                                            )}
+                                            {!searchAudio.isPending && audioSearchError && (
+                                                <div className="px-1 py-2">
+                                                    <p className="text-[9px] leading-relaxed text-[#be2d6b]">{audioSearchError}</p>
+                                                    {audioSearchError.toLowerCase().includes('reconnect') && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => connectMeta()}
+                                                            className="mt-1 text-[9px] font-bold text-[#be2d6b]"
+                                                        >
+                                                            {isConnectingMeta ? 'Opening Meta…' : 'Reconnect Meta Account'}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
                                             {audioResults.map((track) => (
                                                 <button
