@@ -2,16 +2,12 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Check,
-    Clock,
-    IndianRupee,
     Instagram,
     List,
     MessageSquareOff,
     Shield,
     ShieldCheck,
     Sparkles,
-    Star,
-    TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCount } from '@/utils/creator';
@@ -56,7 +52,7 @@ function ChoiceCard({
             type="button"
             onClick={onClick}
             className={cn(
-                'flex min-h-[68px] items-center gap-3 rounded-2xl border bg-white px-[18px] py-[17px] text-left transition hover:-translate-y-px',
+                'flex min-h-[60px] items-center gap-3 rounded-2xl border bg-white px-3.5 py-3.5 text-left transition hover:-translate-y-px sm:min-h-[68px] sm:px-[18px] sm:py-[17px]',
                 selected
                     ? 'border-[#e9408a] bg-[#fff4f8] shadow-[0_0_0_2px_rgba(233,64,138,0.07)]'
                     : 'border-[#e8e8ee] hover:border-[#d7d7df]',
@@ -70,7 +66,7 @@ function ChoiceCard({
             >
                 <Icon size={18} />
             </div>
-            <div>
+            <div className="min-w-0">
                 <div className="text-sm font-bold text-[#111318]">{title}</div>
                 <div className="mt-0.5 text-xs text-[#8a8c94]">{desc}</div>
             </div>
@@ -100,7 +96,7 @@ function Pill({
             type="button"
             onClick={onClick}
             className={cn(
-                'rounded-[11px] border px-3.5 py-2.5 text-[13px] transition',
+                'rounded-[11px] border px-3 py-2 text-[13px] transition sm:px-3.5 sm:py-2.5',
                 selected
                     ? 'border-[#e9408a] bg-[#fff1f7] font-bold text-[#bd2868]'
                     : 'border-[#e8e8ee] bg-white text-[#111318]',
@@ -128,7 +124,7 @@ function PrimaryButton({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                'rounded-xl bg-[#111318] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#25262b] disabled:cursor-not-allowed disabled:opacity-45',
+                'rounded-xl bg-[#111318] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#25262b] disabled:cursor-not-allowed disabled:opacity-45 sm:px-5 sm:py-3.5',
                 className,
             )}
         >
@@ -137,21 +133,28 @@ function PrimaryButton({
     );
 }
 
-function SecondaryButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+function SecondaryButton({ children, onClick, className }: { children: ReactNode; onClick: () => void; className?: string }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className="rounded-xl bg-[#f1f1f5] px-5 py-3.5 text-sm font-bold text-[#333] transition hover:bg-[#e8e8ee]"
+            className={cn(
+                'w-full rounded-xl bg-[#f1f1f5] px-4 py-3 text-sm font-bold text-[#333] transition hover:bg-[#e8e8ee] sm:w-auto sm:px-5 sm:py-3.5',
+                className,
+            )}
         >
             {children}
         </button>
     );
 }
 
+function ActionRow({ children }: { children: ReactNode }) {
+    return <div className="flex flex-col-reverse gap-2.5 sm:flex-row">{children}</div>;
+}
+
 function Progress({ value }: { value: number }) {
     return (
-        <div className="mb-[30px] h-[5px] overflow-hidden rounded-full bg-[#eeeef3]">
+        <div className="mb-5 h-[5px] overflow-hidden rounded-full bg-[#eeeef3] sm:mb-[30px]">
             <span
                 className="block h-full rounded-full bg-[linear-gradient(90deg,#e9408a,#ff7bb4)] transition-all"
                 style={{ width: `${value}%` }}
@@ -159,6 +162,65 @@ function Progress({ value }: { value: number }) {
         </div>
     );
 }
+
+function mapSavedStep(saved: number) {
+    if (saved <= 4) return Math.max(saved, 1);
+    if (saved === 5) return 4;
+    if (saved === 6) return 5;
+    return 6;
+}
+
+function InfoList({
+    items,
+}: {
+    items: { icon: ComponentType<{ size?: number }>; title: string; body: string }[];
+}) {
+    return (
+        <ul className="m-0 list-none rounded-[18px] border border-[#e8e8ee] bg-[#fbfbfd] px-3.5 py-1 sm:px-5">
+            {items.map((item, index) => (
+                <li
+                    key={item.title}
+                    className={cn('flex items-start gap-3 py-2.5', index > 0 && 'border-t border-[#ededf1]')}
+                >
+                    <div className="grid h-7 w-7 flex-none place-items-center rounded-[9px] bg-[#eaf9f1] text-[#168d58]">
+                        <item.icon size={15} />
+                    </div>
+                    <div>
+                        <strong className="mb-0.5 block text-xs text-[#111318]">{item.title}</strong>
+                        <span className="block text-[12px] leading-relaxed text-[#858891]">{item.body}</span>
+                    </div>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+const INSTAGRAM_SECURITY = [
+    {
+        icon: Shield,
+        title: 'Official Instagram authorization',
+        body: 'Instagram is connected through Instagram Login — Buzooka never asks you for your Instagram password. Facebook Login is optional later for Reels Studio.',
+    },
+    {
+        icon: List,
+        title: 'Only approved permissions',
+        body: 'You choose what to authorize. We only request the permissions needed for the creator features you use.',
+    },
+    {
+        icon: MessageSquareOff,
+        title: 'No password or private messages',
+        body: 'Buzooka cannot see your Instagram password. We do not request access to your private messages through this connection.',
+    },
+    {
+        icon: ShieldCheck,
+        title: 'You stay in control',
+        body: "You can review, approve or cancel the connection on Instagram's screen before access is granted.",
+    },
+];
+
+const headingClass =
+    'mb-2.5 text-[25px] font-extrabold leading-[1.12] tracking-[-1.1px] sm:mb-3 sm:text-[31px] sm:leading-[1.08] sm:tracking-[-1.7px] lg:text-[38px]';
+const bodyClass = 'mb-5 text-sm leading-relaxed text-[#70727b] sm:mb-7 sm:text-base';
 
 function profileStrength(data: OnboardingData, connected: boolean) {
     let score = 0;
@@ -181,12 +243,7 @@ export default function Onboarding() {
     const { mutate: connectInstagram, isPending: isConnecting } = useConnectInstagram('onboarding');
     const { data: syncData } = useSyncAccount(instagram?.id);
 
-    const [step, setStep] = useState(() => {
-        const saved = stored?.onboarding_step || 1;
-        if (saved >= 8) return 7;
-        if (saved === 7) return 6;
-        return saved;
-    });
+    const [step, setStep] = useState(() => mapSavedStep(stored?.onboarding_step || 1));
     const [data, setData] = useState<OnboardingData>({
         ...emptyData,
         ...(stored?.onboarding_data || {}),
@@ -202,8 +259,8 @@ export default function Onboarding() {
     useEffect(() => {
         if (!oauthSuccess && !oauthError) return;
         if (oauthSuccess) {
-            setStep(6);
-            saveOnboarding.mutate({ step: 6, data });
+            setStep(5);
+            saveOnboarding.mutate({ step: 5, data });
         } else {
             setStep(4);
         }
@@ -248,7 +305,7 @@ export default function Onboarding() {
 
     const startInstagram = () => {
         setConnecting(true);
-        saveOnboarding.mutate({ step: 5, data });
+        saveOnboarding.mutate({ step: 4, data });
         connectInstagram();
     };
 
@@ -263,22 +320,22 @@ export default function Onboarding() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f6f7fb] font-manrope text-[#111318]">
-            <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-7 sm:py-7">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                    <Link to="/" className="text-[22px] font-extrabold tracking-[-0.8px]">
+        <div className="min-h-screen bg-white font-manrope text-[#111318] sm:bg-[#f6f7fb]">
+            <div className="mx-auto w-full max-w-[1180px] px-0 py-0 sm:px-7 sm:py-7">
+                <div className="mb-4 flex items-center justify-between gap-3 px-4 pt-4 sm:mb-6 sm:px-0 sm:pt-0">
+                    <Link to="/" className="text-[20px] font-extrabold tracking-[-0.8px] sm:text-[22px]">
                         Buzooka<span className="text-[#e9408a]">.</span>
                     </Link>
-                    <p className="order-last w-full text-center text-xs leading-relaxed text-[#777] sm:order-none sm:w-auto sm:flex-1 sm:px-4">
+                    <p className="hidden flex-1 px-4 text-center text-xs leading-relaxed text-[#777] sm:block">
                         Takes about <b className="font-semibold text-[#333]">2 minutes</b>.
                         {' '}Most information will be filled automatically from Instagram.
                     </p>
-                    <div className="rounded-full border border-[#e8e8ee] bg-white px-3.5 py-2 text-[13px] text-[#777]">
+                    <div className="rounded-full border border-[#e8e8ee] bg-white px-3 py-1.5 text-xs text-[#777] sm:px-3.5 sm:py-2 sm:text-[13px]">
                         Step {step} of {ONBOARDING_STEPS.length}
                     </div>
                 </div>
 
-                <div className="grid min-h-[720px] overflow-hidden rounded-3xl border border-[#e7e7ed] bg-white shadow-[0_18px_60px_rgba(20,20,40,0.07)] lg:grid-cols-[250px_1fr]">
+                <div className="grid min-h-0 overflow-hidden border-0 bg-white shadow-none sm:min-h-[720px] sm:rounded-3xl sm:border sm:border-[#e7e7ed] sm:shadow-[0_18px_60px_rgba(20,20,40,0.07)] lg:grid-cols-[250px_1fr]">
                     <aside className="hidden border-r border-[#ededf2] bg-[#fafafd] px-5 py-7 lg:block">
                         <p className="mb-[18px] ml-2.5 mt-1 text-xs uppercase tracking-[1px] text-[#999]">
                             Creator onboarding
@@ -313,41 +370,41 @@ export default function Onboarding() {
                         })}
                     </aside>
 
-                    <main className="flex items-center justify-center px-5 py-8 sm:px-10 lg:px-16">
+                    <main className="flex items-start justify-center px-4 py-6 pb-10 sm:px-10 sm:py-8 lg:px-16">
                         <div className="w-full max-w-[650px]">
                             {step === 1 && (
                                 <>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
                                         Welcome to Buzooka
                                     </p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         Let's build your creator profile.
                                     </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         A few quick questions help us match you with better brands, campaigns and opportunities.
                                     </p>
-                                    <div className="mb-7 flex items-center gap-4 rounded-[19px] border border-[#e8e8ee] p-5">
-                                        <div className="grid h-[54px] w-[54px] place-items-center rounded-2xl bg-[#111318] text-white">
-                                            <Sparkles size={24} />
+                                    <div className="mb-5 flex items-center gap-3 rounded-[19px] border border-[#e8e8ee] p-3.5 sm:mb-7 sm:gap-4 sm:p-5">
+                                        <div className="grid h-11 w-11 flex-none place-items-center rounded-2xl bg-[#111318] text-white sm:h-[54px] sm:w-[54px]">
+                                            <Sparkles size={22} />
                                         </div>
-                                        <div>
-                                            <div className="text-base font-bold">Built for creators</div>
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-bold sm:text-base">Built for creators</div>
                                             <div className="mt-1 text-[13px] text-[#858791]">
                                                 Tell us what you create. We'll handle the rest.
                                             </div>
                                         </div>
                                     </div>
-                                    <PrimaryButton onClick={() => go(2)}>Let's get started →</PrimaryButton>
+                                    <PrimaryButton className="w-full sm:w-auto" onClick={() => go(2)}>Let's get started →</PrimaryButton>
                                 </>
                             )}
 
                             {step === 2 && (
                                 <>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">About you</p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         What best describes you?
                                     </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         Choose the option that fits your creator identity.
                                     </p>
                                     <Progress value={28} />
@@ -363,22 +420,22 @@ export default function Onboarding() {
                                             />
                                         ))}
                                     </div>
-                                    <div className="flex gap-2.5">
+                                    <ActionRow>
                                         <SecondaryButton onClick={() => setStep(1)}>Back</SecondaryButton>
-                                        <PrimaryButton className="flex-1" disabled={!data.creatorType} onClick={() => go(3)}>
+                                        <PrimaryButton className="w-full sm:flex-1" disabled={!data.creatorType} onClick={() => go(3)}>
                                             Continue →
                                         </PrimaryButton>
-                                    </div>
+                                    </ActionRow>
                                 </>
                             )}
 
                             {step === 3 && (
                                 <>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">Your content</p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         What do you create?
                                     </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         Pick up to 5 categories. This helps brands find the right creators.
                                     </p>
                                     <Progress value={42} />
@@ -389,7 +446,7 @@ export default function Onboarding() {
                                                 type="button"
                                                 onClick={() => toggleList('contentCategories', item, 5)}
                                                 className={cn(
-                                                    'rounded-full border px-3.5 py-2.5 text-[13px] transition',
+                                                    'rounded-full border px-3 py-2 text-[13px] transition sm:px-3.5 sm:py-2.5',
                                                     data.contentCategories?.includes(item)
                                                         ? 'border-[#e9408a] bg-[#fff1f7] font-bold text-[#bd2868]'
                                                         : 'border-[#e8e8ee] bg-white',
@@ -402,16 +459,16 @@ export default function Onboarding() {
                                     <p className="mb-6 text-xs text-[#8b8d96]">
                                         {data.contentCategories?.length || 0} of 5 selected
                                     </p>
-                                    <div className="flex gap-2.5">
+                                    <ActionRow>
                                         <SecondaryButton onClick={() => setStep(2)}>Back</SecondaryButton>
                                         <PrimaryButton
-                                            className="flex-1"
+                                            className="w-full sm:flex-1"
                                             disabled={!data.contentCategories?.length}
                                             onClick={() => go(4)}
                                         >
                                             Continue →
                                         </PrimaryButton>
-                                    </div>
+                                    </ActionRow>
                                 </>
                             )}
 
@@ -420,23 +477,23 @@ export default function Onboarding() {
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
                                         Connect account
                                     </p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         Connect Instagram.<br />
                                         Get discovered. Get paid.
                                     </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         Connect your Instagram with Instagram Login. You need a Professional Instagram account (Business or Creator) so we can read your profile, insights, and campaign activity. Facebook Login is not required for this step.
                                     </p>
                                     {oauthError && <p className="mb-4 text-sm font-medium text-red-500">{oauthError}</p>}
-                                    <div className="mb-5 flex items-center gap-4 rounded-[19px] border border-[#e8e8ee] p-5">
-                                        <div className="grid h-[54px] w-[54px] place-items-center rounded-2xl bg-[#111318] text-white">
-                                            <Instagram size={24} />
+                                    <div className="mb-5 flex items-center gap-3 rounded-[19px] border border-[#e8e8ee] p-3.5 sm:gap-4 sm:p-4">
+                                        <div className="grid h-11 w-11 flex-none place-items-center rounded-2xl bg-[#111318] text-white sm:h-[54px] sm:w-[54px]">
+                                            <Instagram size={22} />
                                         </div>
-                                        <div>
-                                            <div className="text-base font-bold">
-                                                {instagram ? `@${instagram.username}` : 'Instagram'}
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-bold sm:text-base">
+                                                <span className="truncate">{instagram ? `@${instagram.username}` : 'Instagram'}</span>
                                                 {instagram && (
-                                                    <span className="ml-1.5 rounded-full bg-[#eaf9f1] px-2 py-1 text-xs text-[#168d58]">
+                                                    <span className="rounded-full bg-[#eaf9f1] px-2 py-1 text-xs font-bold text-[#168d58]">
                                                         ✓ Connected
                                                     </span>
                                                 )}
@@ -446,169 +503,58 @@ export default function Onboarding() {
                                             </div>
                                         </div>
                                     </div>
-                                    {/* <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border border-[#e9408a] bg-[#fff4f8] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <Check size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Profile information</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Username, profile & account type</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border border-[#e9408a] bg-[#fff4f8] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <Loader2 size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Creator analytics</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Where authorized & available</div>
-                                            </div>
-                                        </div>
-                                    </div> */}
-                                    <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <IndianRupee size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Earn More</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Get discovered by brands looking for creators like you and unlock paid collaboration opportunities.</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <Clock size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Get Discovered</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Brands can find you based on your content, audience, category and performance.</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <TrendingUp size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Grow Your Following</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Unlock relevant campaigns and content opportunities that can put you in front of new audiences.</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex min-h-[68px] items-center gap-3 rounded-2xl border hover:border-[#e9408a] px-[18px] py-[17px]">
-                                            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-white text-[#e9408a]">
-                                                <Star size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold">Build Your Reputation</div>
-                                                <div className="mt-0.5 text-xs text-[#8a8c94]">Show brands your real content and performance so they can see your creator potential.</div>
-                                            </div>
-                                        </div>
+                                    <p className="mb-2.5 flex items-center gap-1.5 text-[13px] font-bold">
+                                        <ShieldCheck size={14} className="text-[#168d58]" />
+                                        Private & secure
+                                    </p>
+                                    <div className="mb-7">
+                                        <InfoList items={INSTAGRAM_SECURITY} />
                                     </div>
-                                    <div className="flex gap-2.5">
+                                    <ActionRow>
                                         <SecondaryButton onClick={() => setStep(3)}>Back</SecondaryButton>
                                         <PrimaryButton
-                                            className="flex-1"
-                                            onClick={() => (instagram ? go(6) : go(5))}
+                                            className="w-full sm:flex-1"
+                                            disabled={!instagram && (isConnecting || connecting)}
+                                            onClick={() => (instagram ? go(5) : startInstagram())}
                                         >
-                                            {instagram ? 'Continue →' : 'Connect Instagram →'}
+                                            {instagram
+                                                ? 'Continue →'
+                                                : isConnecting || connecting
+                                                    ? 'Opening Instagram...'
+                                                    : 'Connect Instagram →'}
                                         </PrimaryButton>
-                                    </div>
-                                    <p className="mt-4 text-xs text-[#8b8d96]">
-                                        You'll be redirected to Instagram's official authorization flow.
+                                    </ActionRow>
+                                    <p className="mt-4 text-xs leading-relaxed text-[#8b8d96]">
+                                        You'll be redirected to Instagram's official authorization flow. Buzooka does not collect your Instagram password. Access is granted by Instagram using the permissions you approve.
                                     </p>
                                 </>
                             )}
 
                             {step === 5 && (
-                                <div className="mx-auto max-w-[560px] text-center">
-                                    <div className="mb-3.5 inline-flex items-center gap-1.5 rounded-full bg-[#f4f4f7] px-2.5 py-1.5 text-[10px] font-bold text-[#555860]">
-                                        <ShieldCheck size={14} />
-                                        Secure connection through Instagram
-                                    </div>
-                                    <div className="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-[3px] border-[#eeeef2] border-t-[#e9408a]" />
-                                    <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
-                                        Private & secure
-                                    </p>
-                                    <h1 className="mb-2.5 text-[32px] font-extrabold leading-[1.08] tracking-[-1.7px]">
-                                        You're being connected securely.
-                                    </h1>
-                                    <p className="mb-6 text-base leading-relaxed text-[#70727b]">
-                                        Buzooka is preparing the official Instagram authorization screen. You will review exactly what Instagram allows us to access before anything is connected.
-                                    </p>
-                                    <div className="mb-6 rounded-[18px] border border-[#e8e8ee] bg-[#fbfbfd] px-5 py-[18px] text-left">
-                                        {[
-                                            {
-                                                icon: Shield,
-                                                title: 'Official Instagram authorization',
-                                                body: 'Instagram is connected through Instagram Login — Buzooka never asks you for your Instagram password. Facebook Login is optional later for Reels Studio.',
-                                            },
-                                            {
-                                                icon: List,
-                                                title: 'Only approved permissions',
-                                                body: 'You choose what to authorize. We only request the permissions needed for the creator features you use.',
-                                            },
-                                            {
-                                                icon: MessageSquareOff,
-                                                title: 'No password or private messages',
-                                                body: 'Buzooka cannot see your Instagram password. We do not request access to your private messages through this connection.',
-                                            },
-                                            {
-                                                icon: ShieldCheck,
-                                                title: 'You stay in control',
-                                                body: 'You can review, approve or cancel the connection on Instagram\'s screen before access is granted.',
-                                            },
-                                        ].map((item, index) => (
-                                            <div
-                                                key={item.title}
-                                                className={cn('flex items-start gap-3 py-2.5', index > 0 && 'border-t border-[#ededf1]')}
-                                            >
-                                                <div className="grid h-7 w-7 flex-none place-items-center rounded-[9px] bg-[#eaf9f1] text-[#168d58]">
-                                                    <item.icon size={15} />
-                                                </div>
-                                                <div>
-                                                    <strong className="mb-1 block text-xs">{item.title}</strong>
-                                                    <span className="block text-[10.5px] leading-relaxed text-[#858891]">{item.body}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2.5">
-                                        <SecondaryButton onClick={() => setStep(4)}>Back</SecondaryButton>
-                                        <PrimaryButton className="flex-1" disabled={isConnecting || connecting} onClick={startInstagram}>
-                                            {isConnecting || connecting ? 'Opening Instagram...' : 'Continue to Instagram →'}
-                                        </PrimaryButton>
-                                    </div>
-                                    <p className="mt-4 text-[10px] leading-relaxed text-[#999ba3]">
-                                        Buzooka does not collect your Instagram password. Access is granted by Instagram using the permissions you approve.
-                                    </p>
-                                </div>
-                            )}
-
-                            {step === 6 && (
                                 <>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
                                         Your creator goals
                                     </p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         Let's find the right opportunities for you.
                                     </h1>
-                                    <p className="mb-7 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         Now that we know your content, tell us what you want to achieve. We’ll use your profile to match you with campaigns that fit your audience and creator style.
                                     </p>
-                                    <div className="mb-7 flex items-center gap-[13px] rounded-[19px] border border-[#e2e3e9] bg-white px-[17px] py-3.5">
+                                    <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[19px] border border-[#e2e3e9] bg-white px-3.5 py-3 sm:mb-7 sm:gap-[13px] sm:px-[17px] sm:py-3.5">
                                         <div
-                                            className="h-[47px] w-[47px] flex-none overflow-hidden rounded-full bg-[linear-gradient(135deg,#222,#999)] bg-cover bg-center"
+                                            className="h-11 w-11 flex-none overflow-hidden rounded-full bg-[linear-gradient(135deg,#222,#999)] bg-cover bg-center sm:h-[47px] sm:w-[47px]"
                                             style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
                                         />
-                                        <div className="min-w-0">
-                                            <div className="text-[15px] font-bold">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-[15px] font-bold">
                                                 {username ? `@${username}` : displayName || '@yourusername'}
                                             </div>
                                             {profileMeta && (
-                                                <div className="mt-1 text-[13px] text-[#858791]">{profileMeta}</div>
+                                                <div className="mt-1 truncate text-[13px] text-[#858791]">{profileMeta}</div>
                                             )}
                                         </div>
-                                        <div className="ml-auto flex-none text-[13px] font-bold text-[#ee3c89]">
+                                        <div className="w-full text-[13px] font-bold text-[#ee3c89] sm:ml-auto sm:w-auto">
                                             ✓ Instagram connected
                                         </div>
                                     </div>
@@ -640,48 +586,48 @@ export default function Onboarding() {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="flex gap-2.5">
-                                        <SecondaryButton onClick={() => setStep(instagram ? 4 : 5)}>Back</SecondaryButton>
+                                    <ActionRow>
+                                        <SecondaryButton onClick={() => setStep(4)}>Back</SecondaryButton>
                                         <PrimaryButton
-                                            className="flex-1"
+                                            className="w-full sm:flex-1"
                                             disabled={!data.location || !data.languages?.length}
-                                            onClick={() => go(7)}
+                                            onClick={() => go(6)}
                                         >
                                             Create my profile →
                                         </PrimaryButton>
-                                    </div>
+                                    </ActionRow>
                                 </>
                             )}
 
-                            {step === 7 && (
+                            {step === 6 && (
                                 <div className="text-center">
-                                    <div className="mx-auto mb-[22px] grid h-[78px] w-[78px] place-items-center rounded-full bg-[#eaf9f1] text-[#15945a]">
-                                        <Check size={34} />
+                                    <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-[#eaf9f1] text-[#15945a] sm:mb-[22px] sm:h-[78px] sm:w-[78px]">
+                                        <Check size={28} />
                                     </div>
                                     <p className="mb-2.5 text-xs font-extrabold uppercase tracking-[1.5px] text-[#e9408a]">
                                         Your Buzooka profile
                                     </p>
-                                    <h1 className="mb-3 text-[31px] font-extrabold leading-[1.08] tracking-[-1.7px] lg:text-[38px]">
+                                    <h1 className={headingClass}>
                                         You're ready to be discovered.
                                     </h1>
-                                    <p className="mb-6 text-base leading-relaxed text-[#70727b]">
+                                    <p className={bodyClass}>
                                         We've combined your answers with your Instagram data to build your creator profile.
                                     </p>
-                                    <div className="mb-4 rounded-[20px] border border-[#e8e8ee] p-5 text-left">
-                                        <div className="flex items-center gap-3.5">
+                                    <div className="mb-4 rounded-[20px] border border-[#e8e8ee] p-3.5 text-left sm:p-5">
+                                        <div className="flex items-center gap-3 sm:gap-3.5">
                                             <div
-                                                className="h-[54px] w-[54px] rounded-full bg-[linear-gradient(145deg,#15161b,#6b6d77)] bg-cover bg-center"
+                                                className="h-11 w-11 flex-none rounded-full bg-[linear-gradient(145deg,#15161b,#6b6d77)] bg-cover bg-center sm:h-[54px] sm:w-[54px]"
                                                 style={
                                                     instagram?.profile_image
                                                         ? { backgroundImage: `url(${instagram.profile_image})` }
                                                         : undefined
                                                 }
                                             />
-                                            <div>
-                                                <div className="text-base font-bold">
-                                                    {username ? `@${username}` : displayName || 'Your profile'}
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-bold sm:text-base">
+                                                    <span className="truncate">{username ? `@${username}` : displayName || 'Your profile'}</span>
                                                     {instagram && (
-                                                        <span className="ml-1.5 rounded-full bg-[#eaf9f1] px-2 py-1 text-xs text-[#168d58]">
+                                                        <span className="rounded-full bg-[#eaf9f1] px-2 py-1 text-xs font-bold text-[#168d58]">
                                                             ✓ Verified
                                                         </span>
                                                     )}
@@ -695,22 +641,22 @@ export default function Onboarding() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="mt-[18px] grid grid-cols-2 gap-3">
-                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3.5">
+                                        <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:mt-[18px] sm:gap-3">
+                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3 sm:p-3.5">
                                                 <strong className="block text-[13px]">{instagram ? formatCount(followers) : '—'}</strong>
                                                 <span className="text-xs text-[#858791]">Followers</span>
                                             </div>
-                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3.5">
+                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3 sm:p-3.5">
                                                 <strong className="block text-[13px]">
                                                     {instagram ? `${engagement.toFixed(1)}%` : '—'}
                                                 </strong>
                                                 <span className="text-xs text-[#858791]">Engagement</span>
                                             </div>
-                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3.5">
+                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3 sm:p-3.5">
                                                 <strong className="block text-[13px]">{data.location || 'India'}</strong>
                                                 <span className="text-xs text-[#858791]">Primary market</span>
                                             </div>
-                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3.5">
+                                            <div className="rounded-[14px] bg-[#f7f7fa] p-3 sm:p-3.5">
                                                 <strong className="block text-[13px]">
                                                     {data.languages?.length ? data.languages.slice(0, 2).join(' + ') : '—'}
                                                 </strong>
@@ -718,7 +664,7 @@ export default function Onboarding() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="rounded-[19px] border border-[#e8e8ee] p-5 text-left">
+                                    <div className="rounded-[19px] border border-[#e8e8ee] p-3.5 text-left sm:p-5">
                                         <div className="mb-2.5 flex items-center justify-between">
                                             <strong className="text-sm">Profile strength</strong>
                                             <b className="text-sm text-[#e9408a]">{strength}%</b>
@@ -733,7 +679,7 @@ export default function Onboarding() {
                                             Add your rates, bio and portfolio later to reach 100%.
                                         </p>
                                     </div>
-                                    <PrimaryButton className="mt-[22px]" onClick={() => go(7, undefined, true)}>
+                                    <PrimaryButton className="mt-5 w-full sm:mt-[22px] sm:w-auto" onClick={() => go(6, undefined, true)}>
                                         Go to my dashboard →
                                     </PrimaryButton>
                                 </div>

@@ -23,7 +23,6 @@ export const ONBOARDING_STEPS = [
     'Creator type',
     'Content',
     'Instagram',
-    'Secure connection',
     'Preferences',
     'Your profile',
 ] as const;

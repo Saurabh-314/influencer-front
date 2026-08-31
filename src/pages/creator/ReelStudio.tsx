@@ -904,6 +904,13 @@ export default function CreatorReelStudio() {
                                                     )}
                                                 </div>
                                             )}
+                                            {!searchAudio.isPending && !audioSearchError && audioResults.length === 0 && (
+                                                <p className="px-1 py-2 text-[9px] text-[#8a8d95]">
+                                                    {audioQuery.trim()
+                                                        ? 'No matching tracks in Meta’s third-party catalog. Try a shorter keyword, or clear the search for trending tracks.'
+                                                        : 'No trending tracks returned. Reconnect Meta if this stays empty.'}
+                                                </p>
+                                            )}
                                             {audioResults.map((track) => (
                                                 <button
                                                     key={track.audio_id}
@@ -924,7 +931,7 @@ export default function CreatorReelStudio() {
                                             ))}
                                         </div>
                                         <p className="mt-1 text-[8px] leading-relaxed text-[#9a9ca4]">
-                                            This catalog is Meta’s third-party audio, not the full in-app Instagram library. Leave empty to publish with the video’s original sound.
+                                            Search uses Meta’s royalty-free Sound Collection for third-party apps, not the licensed songs in the Instagram app. Leave empty for trending tracks, or skip music to keep the video’s original sound.
                                         </p>
                                     </>
                                 )}
