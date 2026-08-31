@@ -296,7 +296,7 @@ export default function CreatorDashboard() {
                     )}
                 </div>
 
-                <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_.75fr]">
+                <div className="mb-4 mr-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_.75fr]">
                     <div className="relative min-h-[290px] overflow-hidden rounded-[21px] bg-[linear-gradient(130deg,#13151c_0%,#292332_55%,#572443_100%)] p-[27px] text-white">
                         <div className="pointer-events-none absolute -right-[70px] -top-[120px] h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgba(233,64,138,0.72),transparent_65%)]" />
                         <div className="pointer-events-none absolute bottom-[-170px] right-[90px] h-[240px] w-[240px] rounded-full bg-[radial-gradient(circle,rgba(255,135,184,0.32),transparent_65%)]" />
