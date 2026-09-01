@@ -221,7 +221,7 @@ const INSTAGRAM_SECURITY = [
 ];
 
 const headingClass =
-    'mb-2.5 text-[25px] font-extrabold leading-[1.12] tracking-[-1.1px] sm:mb-3 sm:text-[31px] sm:leading-[1.08] sm:tracking-[-1.7px] lg:text-[38px]';
+    'mb-2.5 text-[25px] font-extrabold leading-[1.12] tracking-[-1.1px] sm:mb-3 sm:text-[31px] sm:leading-[1.08] sm:tracking-[-1.7px] lg:text-[30px]';
 const bodyClass = 'mb-5 text-sm leading-relaxed text-[#70727b] sm:mb-7 sm:text-base';
 
 function profileStrength(data: OnboardingData, connected: boolean) {

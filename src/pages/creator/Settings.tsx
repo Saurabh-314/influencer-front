@@ -125,7 +125,7 @@ export default function CreatorSettings() {
                 <div className="rounded-[18px] border border-[#e9e9ef] bg-white p-5">
                     <div className="mb-3 flex items-start justify-between gap-3">
                         <div>
-                            <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">Meta (optional)</div>
+                            <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.1px] text-[#8b8d95]">Facebook (optional)</div>
                             <p className="text-[12px] text-[#8b8d95]">Required only for Reels Studio, bulk publishing, and Instagram audio search. Your Instagram Login connection stays independent.</p>
                         </div>
                         <button
@@ -134,7 +134,7 @@ export default function CreatorSettings() {
                             disabled={isConnectingMeta}
                             className="rounded-[9px] bg-[#111318] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
                         >
-                            {isConnectingMeta ? 'Opening…' : metaStatus?.connected ? 'Reconnect Meta' : 'Connect Meta Account'}
+                            {isConnectingMeta ? 'Opening…' : metaStatus?.connected ? 'Reconnect Facebook' : 'Connect Facebook Account'}
                         </button>
                     </div>
                     {metaStatus?.connected ? (
@@ -149,7 +149,7 @@ export default function CreatorSettings() {
                             </p>
                         </div>
                     ) : (
-                        <p className="text-sm text-[#8b8d95]">Connect Meta Account to use Reels Studio.</p>
+                        <p className="text-sm text-[#8b8d95]">Connect Facebook Account to use Reels Studio.</p>
                     )}
                 </div>
 
