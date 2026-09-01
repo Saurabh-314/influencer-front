@@ -17,7 +17,7 @@ import {
     type InstagramAudioTrack,
 } from '@/hooks/useSocialAccounts';
 import { accountAvatarStyle } from '@/components/creator/CreatorInstagramAccounts';
-import { getApiErrorMessage } from '@/api/axios';
+import api, { getApiErrorMessage } from '@/api/axios';
 import { formatCount, type SocialAccountRecord } from '@/utils/creator';
 import { formatFileSize, resolveAssetUrl } from '@/utils/image';
 import {
@@ -104,6 +104,86 @@ function formatDuration(seconds?: number | null) {
     return `${Math.floor(total / 60)}:${pad(total % 60)}`;
 }
 
+function clampAudioStart(startMs: number, durationMs?: number | null) {
+    const start = Math.max(0, Math.round(Number(startMs) || 0));
+    if (!durationMs || durationMs <= 1000) return start;
+    return Math.min(start, durationMs - 1000);
+}
+
+function AudioPlayIcon({ playing }: { playing: boolean }) {
+    return playing ? (
+        <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current">
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+        </svg>
+    ) : (
+        <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current">
+            <path d="M8 5.5v13l11-6.5z" />
+        </svg>
+    );
+}
+
+function AudioPlayButton({
+    loading,
+    playing,
+    onClick,
+}: {
+    loading?: boolean;
+    playing: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={(event) => {
+                event.stopPropagation();
+                onClick();
+            }}
+            disabled={loading}
+            className="grid h-7 w-7 flex-none place-items-center rounded-full bg-[#111318] text-white disabled:opacity-50"
+            aria-label={playing ? 'Pause' : 'Play'}
+        >
+            {loading ? (
+                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-white/40 border-t-white" />
+            ) : (
+                <AudioPlayIcon playing={playing} />
+            )}
+        </button>
+    );
+}
+
+function AudioStartSlider({
+    startMs,
+    durationMs,
+    disabled,
+    onChange,
+}: {
+    startMs: number;
+    durationMs?: number | null;
+    disabled?: boolean;
+    onChange: (value: number) => void;
+}) {
+    if (!durationMs || durationMs <= 1000) return null;
+    return (
+        <div className="mt-1.5 px-0.5">
+            <div className="mb-0.5 flex items-center justify-between text-[8px] text-[#8a8d95]">
+                <span>Start at {formatDuration(startMs / 1000)}</span>
+                <span>{formatDuration(durationMs / 1000)}</span>
+            </div>
+            <input
+                type="range"
+                min={0}
+                max={Math.max(0, durationMs - 1000)}
+                step={100}
+                value={clampAudioStart(startMs, durationMs)}
+                disabled={disabled}
+                onChange={(event) => onChange(Number(event.target.value))}
+                className="h-1.5 w-full accent-[#bd2868]"
+            />
+        </div>
+    );
+}
+
 function accountRoleLabel(account: SocialAccountRecord, index: number) {
     if (index === 0) return 'Primary creator account';
     if (String(account.account_type || '').toUpperCase() === 'BUSINESS') return 'Brand / catalogue account';
@@ -177,6 +257,10 @@ export default function CreatorReelStudio() {
     const retryTarget = useRetryReelTarget();
     const fileRef = useRef<HTMLInputElement>(null);
     const didInitAccounts = useRef(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioBlobUrlRef = useRef<string | null>(null);
+    const playRequestRef = useRef(0);
+    const audioStartsRef = useRef<Record<string, number>>({});
 
     const [editingId, setEditingId] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -205,6 +289,12 @@ export default function CreatorReelStudio() {
     const [audioType, setAudioType] = useState<'music' | 'original_sound'>('music');
     const [audioResults, setAudioResults] = useState<InstagramAudioTrack[]>([]);
     const [audioSearchError, setAudioSearchError] = useState<string | null>(null);
+    const [audioStarts, setAudioStarts] = useState<Record<string, number>>({});
+    const [previewingId, setPreviewingId] = useState<string | null>(null);
+    const [previewPlaying, setPreviewPlaying] = useState(false);
+    const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+    const [audioPlayError, setAudioPlayError] = useState<string | null>(null);
+    audioStartsRef.current = audioStarts;
 
     const oauthError = getInstagramOAuthErrorMessage(
         searchParams.get('error'),
@@ -226,6 +316,25 @@ export default function CreatorReelStudio() {
             if (previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
         };
     }, [previewUrl]);
+
+    useEffect(() => {
+        const el = new Audio();
+        audioRef.current = el;
+        const onEnded = () => setPreviewPlaying(false);
+        const onPause = () => setPreviewPlaying(false);
+        const onPlay = () => setPreviewPlaying(true);
+        el.addEventListener('ended', onEnded);
+        el.addEventListener('pause', onPause);
+        el.addEventListener('play', onPlay);
+        return () => {
+            el.pause();
+            el.removeEventListener('ended', onEnded);
+            el.removeEventListener('pause', onPause);
+            el.removeEventListener('play', onPlay);
+            el.removeAttribute('src');
+            if (audioBlobUrlRef.current) URL.revokeObjectURL(audioBlobUrlRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (!studioAccounts.length || didInitAccounts.current) return;
@@ -264,6 +373,151 @@ export default function CreatorReelStudio() {
         return () => window.clearTimeout(handle);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [audioAccountId, audioQuery, audioType]);
+
+    function stopAudioPreview() {
+        playRequestRef.current += 1;
+        audioRef.current?.pause();
+        if (audioRef.current) {
+            audioRef.current.removeAttribute('src');
+            audioRef.current.load();
+        }
+        if (audioBlobUrlRef.current) {
+            URL.revokeObjectURL(audioBlobUrlRef.current);
+            audioBlobUrlRef.current = null;
+        }
+        setPreviewingId(null);
+        setPreviewPlaying(false);
+        setPreviewLoadingId(null);
+    }
+
+    function rememberAudioDuration(audioId: string, durationMs: number) {
+        if (!durationMs) return;
+        setAudioResults((current) => current.map((track) => (
+            track.audio_id === audioId && !track.duration_ms ? { ...track, duration_ms: durationMs } : track
+        )));
+        setSelectedAudio((current) => (
+            current?.audio_id === audioId && !current.duration_ms
+                ? { ...current, duration_ms: durationMs }
+                : current
+        ));
+    }
+
+    function applyAudioStart(track: InstagramAudioTrack) {
+        const el = audioRef.current;
+        if (!el || !Number.isFinite(el.duration)) return;
+        const durationMs = track.duration_ms || Math.round(el.duration * 1000);
+        const startMs = clampAudioStart(audioStartsRef.current[track.audio_id] || 0, durationMs);
+        if (startMs > 0 && startMs / 1000 < el.duration) {
+            el.currentTime = startMs / 1000;
+        }
+    }
+
+    function updateTrackStart(audioId: string, startMs: number, durationMs?: number | null) {
+        const next = clampAudioStart(startMs, durationMs);
+        setAudioStarts((current) => ({ ...current, [audioId]: next }));
+        if (previewingId === audioId && audioRef.current && Number.isFinite(audioRef.current.duration)) {
+            audioRef.current.currentTime = Math.min(next / 1000, audioRef.current.duration);
+        }
+    }
+
+    async function loadAudioSrc(src: string) {
+        const el = audioRef.current;
+        if (!el) throw new Error('Audio player is not ready');
+        await new Promise<void>((resolve, reject) => {
+            let settled = false;
+            const onReady = () => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                resolve();
+            };
+            const onError = () => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                reject(new Error('Could not load audio'));
+            };
+            const cleanup = () => {
+                el.removeEventListener('loadedmetadata', onReady);
+                el.removeEventListener('error', onError);
+            };
+            el.addEventListener('loadedmetadata', onReady);
+            el.addEventListener('error', onError);
+            el.src = src;
+            if (el.readyState >= 1) onReady();
+        });
+    }
+
+    async function fetchAudioPreviewBlob(audioId: string) {
+        if (!audioAccountId) throw new Error('Connect Meta to play Instagram music');
+        const res = await api.get(
+            `/social-accounts/${audioAccountId}/audio/${encodeURIComponent(audioId)}/preview`,
+            { responseType: 'blob' },
+        );
+        if (res.data instanceof Blob && res.data.type.includes('json')) {
+            const text = await res.data.text();
+            try {
+                const parsed = JSON.parse(text) as { message?: string };
+                throw new Error(parsed.message || 'Could not play this track');
+            } catch (error) {
+                if (error instanceof SyntaxError) throw new Error('Could not play this track');
+                throw error;
+            }
+        }
+        if (audioBlobUrlRef.current) URL.revokeObjectURL(audioBlobUrlRef.current);
+        const url = URL.createObjectURL(res.data);
+        audioBlobUrlRef.current = url;
+        return url;
+    }
+
+    async function previewTrack(track: InstagramAudioTrack) {
+        const el = audioRef.current;
+        if (!el) return;
+        if (previewingId === track.audio_id) {
+            if (el.paused) await el.play();
+            else el.pause();
+            return;
+        }
+        if (!audioAccountId) {
+            setAudioPlayError('Connect Meta to play Instagram music');
+            return;
+        }
+
+        const requestId = ++playRequestRef.current;
+        setAudioPlayError(null);
+        setPreviewLoadingId(track.audio_id);
+        el.pause();
+        try {
+            let loaded = false;
+            if (track.download_url) {
+                try {
+                    await loadAudioSrc(track.download_url);
+                    loaded = true;
+                } catch {
+                    loaded = false;
+                }
+            }
+            if (!loaded) {
+                await loadAudioSrc(await fetchAudioPreviewBlob(track.audio_id));
+            }
+            if (requestId !== playRequestRef.current) return;
+            const durationMs = Number.isFinite(el.duration)
+                ? Math.round(el.duration * 1000)
+                : (track.duration_ms || 0);
+            rememberAudioDuration(track.audio_id, durationMs);
+            applyAudioStart({ ...track, duration_ms: durationMs || track.duration_ms });
+            const playingTrack = { ...track, duration_ms: durationMs || track.duration_ms };
+            el.addEventListener('playing', () => applyAudioStart(playingTrack), { once: true });
+            await el.play();
+            setPreviewingId(track.audio_id);
+        } catch (error) {
+            if (requestId !== playRequestRef.current) return;
+            setPreviewingId(null);
+            setAudioPlayError(getApiErrorMessage(error, 'Could not play this track'));
+        } finally {
+            if (requestId === playRequestRef.current) setPreviewLoadingId(null);
+        }
+    }
 
     const nextPublish = useMemo(() => {
         const stamps = selectedAccounts
@@ -339,6 +593,9 @@ export default function CreatorReelStudio() {
         setAudioQuery('');
         setAudioResults([]);
         setAudioSearchError(null);
+        setAudioStarts({});
+        setAudioPlayError(null);
+        stopAudioPreview();
     }
 
     async function handleVideoFile(file: File) {
@@ -421,6 +678,9 @@ export default function CreatorReelStudio() {
             ig_audio_artist: selectedAudio?.artist || null,
             ig_audio_thumbnail_url: selectedAudio?.thumbnail_url || null,
             ig_audio_duration_ms: selectedAudio?.duration_ms || null,
+            ig_audio_start_ms: selectedAudio
+                ? clampAudioStart(audioStarts[selectedAudio.audio_id] || 0, selectedAudio.duration_ms)
+                : null,
             status,
             targets: studioAccounts.map((account) => {
                 const id = String(account.id);
@@ -500,7 +760,11 @@ export default function CreatorReelStudio() {
             thumbnail_url: post.ig_audio_thumbnail_url,
             duration_ms: post.ig_audio_duration_ms,
         } : null);
+        setAudioStarts(post.ig_audio_id
+            ? { [post.ig_audio_id]: clampAudioStart(post.ig_audio_start_ms || 0, post.ig_audio_duration_ms) }
+            : {});
         setAudioQuery('');
+        stopAudioPreview();
         const nextSelected = (post.targets || [])
             .filter((target) => target.enabled)
             .map((target) => String(target.social_account_id));
@@ -832,109 +1096,154 @@ export default function CreatorReelStudio() {
                                     <span>Instagram music</span>
                                     <span className="font-medium text-[#a0a2aa]">Optional · Meta catalog</span>
                                 </div>
-                                {selectedAudio ? (
-                                    <div className="flex items-center gap-2 rounded-[11px] border border-[#e9e9ef] bg-[#fafafd] p-2">
-                                        {selectedAudio.thumbnail_url ? (
-                                            <img
-                                                src={selectedAudio.thumbnail_url}
-                                                alt=""
-                                                className="h-9 w-9 flex-none rounded-md object-cover"
+                                {selectedAudio && (
+                                    <div className="mb-2 rounded-[11px] border border-[#e9e9ef] bg-[#fafafd] p-2">
+                                        <div className="flex items-center gap-2">
+                                            <AudioPlayButton
+                                                loading={previewLoadingId === selectedAudio.audio_id}
+                                                playing={previewingId === selectedAudio.audio_id && previewPlaying}
+                                                onClick={() => void previewTrack(selectedAudio)}
                                             />
-                                        ) : (
-                                            <div className="grid h-9 w-9 flex-none place-items-center rounded-md bg-[#111318] text-[9px] font-bold text-white">♪</div>
-                                        )}
-                                        <div className="min-w-0 flex-1">
-                                            <strong className="block truncate text-[10px]">{selectedAudio.title}</strong>
-                                            <span className="block truncate text-[8px] text-[#8a8d95]">
-                                                {selectedAudio.artist || 'Instagram audio'}
-                                            </span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedAudio(null)}
-                                            className="text-[9px] font-bold text-[#be2d6b]"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="mb-1.5 flex gap-1.5">
+                                            {selectedAudio.thumbnail_url ? (
+                                                <img
+                                                    src={selectedAudio.thumbnail_url}
+                                                    alt=""
+                                                    className="h-9 w-9 flex-none rounded-md object-cover"
+                                                />
+                                            ) : (
+                                                <div className="grid h-9 w-9 flex-none place-items-center rounded-md bg-[#111318] text-[9px] font-bold text-white">♪</div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <strong className="block truncate text-[10px]">{selectedAudio.title}</strong>
+                                                <span className="block truncate text-[8px] text-[#8a8d95]">
+                                                    {selectedAudio.artist || 'Instagram audio'}
+                                                </span>
+                                            </div>
                                             <button
                                                 type="button"
-                                                onClick={() => setAudioType('music')}
-                                                className={`rounded-full px-2 py-1 text-[8px] font-bold ${
-                                                    audioType === 'music' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
-                                                }`}
+                                                onClick={() => {
+                                                    if (previewingId === selectedAudio.audio_id) stopAudioPreview();
+                                                    setSelectedAudio(null);
+                                                }}
+                                                className="text-[9px] font-bold text-[#be2d6b]"
                                             >
-                                                Music
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setAudioType('original_sound')}
-                                                className={`rounded-full px-2 py-1 text-[8px] font-bold ${
-                                                    audioType === 'original_sound' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
-                                                }`}
-                                            >
-                                                Original sounds
+                                                Remove
                                             </button>
                                         </div>
-                                        <input
-                                            value={audioQuery}
-                                            onChange={(event) => setAudioQuery(event.target.value)}
-                                            placeholder={audioAccountId ? 'Search Instagram music' : 'Connect Meta to search music'}
-                                            disabled={!audioAccountId}
-                                            className="h-9 w-full rounded-[9px] border border-[#e9e9ef] px-2 text-[11px] outline-none disabled:bg-[#f7f7f9]"
+                                        <AudioStartSlider
+                                            startMs={audioStarts[selectedAudio.audio_id] || 0}
+                                            durationMs={selectedAudio.duration_ms}
+                                            onChange={(value) => updateTrackStart(selectedAudio.audio_id, value, selectedAudio.duration_ms)}
                                         />
-                                        <div className="mt-1.5 max-h-[160px] overflow-auto">
-                                            {searchAudio.isPending && (
-                                                <p className="px-1 py-2 text-[9px] text-[#8a8d95]">Searching…</p>
-                                            )}
-                                            {!searchAudio.isPending && audioSearchError && (
-                                                <div className="px-1 py-2">
-                                                    <p className="text-[9px] leading-relaxed text-[#be2d6b]">{audioSearchError}</p>
-                                                    {audioSearchError.toLowerCase().includes('reconnect') && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => connectMeta()}
-                                                            className="mt-1 text-[9px] font-bold text-[#be2d6b]"
-                                                        >
-                                                            {isConnectingMeta ? 'Opening Meta…' : 'Reconnect Meta Account'}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                            {!searchAudio.isPending && !audioSearchError && audioResults.length === 0 && (
-                                                <p className="px-1 py-2 text-[9px] text-[#8a8d95]">
-                                                    {audioQuery.trim()
-                                                        ? 'No matching tracks in Meta’s third-party catalog. Try a shorter keyword, or clear the search for trending tracks.'
-                                                        : 'No trending tracks returned. Reconnect Meta if this stays empty.'}
-                                                </p>
-                                            )}
-                                            {audioResults.map((track) => (
+                                    </div>
+                                )}
+                                <div className="mb-1.5 flex gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAudioType('music')}
+                                        className={`rounded-full px-2 py-1 text-[8px] font-bold ${
+                                            audioType === 'music' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
+                                        }`}
+                                    >
+                                        Music
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAudioType('original_sound')}
+                                        className={`rounded-full px-2 py-1 text-[8px] font-bold ${
+                                            audioType === 'original_sound' ? 'bg-[#fff0f7] text-[#bd2868]' : 'bg-[#f3f3f6] text-[#656872]'
+                                        }`}
+                                    >
+                                        Original sounds
+                                    </button>
+                                </div>
+                                <input
+                                    value={audioQuery}
+                                    onChange={(event) => setAudioQuery(event.target.value)}
+                                    placeholder={audioAccountId ? 'Search Instagram music' : 'Connect Meta to search music'}
+                                    disabled={!audioAccountId}
+                                    className="h-9 w-full rounded-[9px] border border-[#e9e9ef] px-2 text-[11px] outline-none disabled:bg-[#f7f7f9]"
+                                />
+                                <div className="mt-1.5 max-h-[220px] overflow-auto">
+                                    {searchAudio.isPending && (
+                                        <p className="px-1 py-2 text-[9px] text-[#8a8d95]">Searching…</p>
+                                    )}
+                                    {!searchAudio.isPending && audioSearchError && (
+                                        <div className="px-1 py-2">
+                                            <p className="text-[9px] leading-relaxed text-[#be2d6b]">{audioSearchError}</p>
+                                            {audioSearchError.toLowerCase().includes('reconnect') && (
                                                 <button
-                                                    key={track.audio_id}
                                                     type="button"
-                                                    onClick={() => setSelectedAudio(track)}
-                                                    className="flex w-full items-center gap-2 rounded-[9px] px-1 py-1.5 text-left hover:bg-[#fafafd]"
+                                                    onClick={() => connectMeta()}
+                                                    className="mt-1 text-[9px] font-bold text-[#be2d6b]"
                                                 >
+                                                    {isConnectingMeta ? 'Opening Meta…' : 'Reconnect Meta Account'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!searchAudio.isPending && !audioSearchError && audioResults.length === 0 && (
+                                        <p className="px-1 py-2 text-[9px] text-[#8a8d95]">
+                                            {audioQuery.trim()
+                                                ? 'No matching tracks in Meta’s third-party catalog. Try a shorter keyword, or clear the search for trending tracks.'
+                                                : 'No trending tracks returned. Reconnect Meta if this stays empty.'}
+                                        </p>
+                                    )}
+                                    {audioResults.map((track) => {
+                                        const selected = selectedAudio?.audio_id === track.audio_id;
+                                        const previewing = previewingId === track.audio_id;
+                                        return (
+                                            <div
+                                                key={track.audio_id}
+                                                className={`rounded-[9px] px-1 py-1.5 ${selected ? 'bg-[#fff0f7]' : 'hover:bg-[#fafafd]'}`}
+                                            >
+                                                <div className="flex w-full items-center gap-2">
+                                                    <AudioPlayButton
+                                                        loading={previewLoadingId === track.audio_id}
+                                                        playing={previewing && previewPlaying}
+                                                        onClick={() => void previewTrack(track)}
+                                                    />
                                                     {track.thumbnail_url ? (
                                                         <img src={track.thumbnail_url} alt="" className="h-7 w-7 flex-none rounded object-cover" />
                                                     ) : (
                                                         <div className="grid h-7 w-7 flex-none place-items-center rounded bg-[#f3f3f6] text-[9px]">♪</div>
                                                     )}
-                                                    <div className="min-w-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedAudio(track)}
+                                                        className="min-w-0 flex-1 text-left"
+                                                    >
                                                         <strong className="block truncate text-[10px]">{track.title}</strong>
-                                                        <span className="block truncate text-[8px] text-[#8a8d95]">{track.artist || 'Instagram audio'}</span>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <p className="mt-1 text-[8px] leading-relaxed text-[#9a9ca4]">
-                                            Search uses Meta’s royalty-free Sound Collection for third-party apps, not the licensed songs in the Instagram app. Leave empty for trending tracks, or skip music to keep the video’s original sound.
-                                        </p>
-                                    </>
+                                                        <span className="block truncate text-[8px] text-[#8a8d95]">
+                                                            {track.artist || 'Instagram audio'}
+                                                            {track.duration_ms ? ` · ${formatDuration(track.duration_ms / 1000)}` : ''}
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedAudio(track)}
+                                                        className={`text-[8px] font-bold ${selected ? 'text-[#bd2868]' : 'text-[#656872]'}`}
+                                                    >
+                                                        {selected ? 'Using' : 'Use'}
+                                                    </button>
+                                                </div>
+                                                {(previewing && !selected) && (
+                                                    <AudioStartSlider
+                                                        startMs={audioStarts[track.audio_id] || 0}
+                                                        durationMs={track.duration_ms}
+                                                        onChange={(value) => updateTrackStart(track.audio_id, value, track.duration_ms)}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {audioPlayError && (
+                                    <p className="mt-1 px-1 text-[8px] leading-relaxed text-[#be2d6b]">{audioPlayError}</p>
                                 )}
+                                <p className="mt-1 text-[8px] leading-relaxed text-[#9a9ca4]">
+                                    Play any track without attaching it. Drag Start at to choose where the song begins. Search uses Meta’s royalty-free Sound Collection for third-party apps, not the licensed songs in the Instagram app.
+                                </p>
                             </div>
                         </div>
                     </section>

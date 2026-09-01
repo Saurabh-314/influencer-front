@@ -87,6 +87,7 @@ export type InstagramAudioTrack = {
     duration_ms?: number | null;
     audio_type?: string | null;
     preview_url?: string | null;
+    download_url?: string | null;
 };
 
 export function useSearchInstagramAudio(accountId?: string | number) {

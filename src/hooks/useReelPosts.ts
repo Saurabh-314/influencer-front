@@ -48,6 +48,7 @@ export type ReelPost = {
     ig_audio_artist?: string | null;
     ig_audio_thumbnail_url?: string | null;
     ig_audio_duration_ms?: number | null;
+    ig_audio_start_ms?: number | null;
     status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'cancelled';
     createdAt?: string;
     updatedAt?: string;
@@ -87,6 +88,7 @@ export type ReelPostPayload = {
     ig_audio_artist?: string | null;
     ig_audio_thumbnail_url?: string | null;
     ig_audio_duration_ms?: number | null;
+    ig_audio_start_ms?: number | null;
     status: 'draft' | 'scheduled';
     targets: {
         social_account_id: number;
