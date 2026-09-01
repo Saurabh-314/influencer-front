@@ -448,11 +448,14 @@ export default function CreatorReelStudio() {
         });
     }
 
-    async function fetchAudioPreviewBlob(audioId: string) {
+    async function fetchAudioPreviewBlob(track: InstagramAudioTrack) {
         if (!audioAccountId) throw new Error('Connect Meta to play Instagram music');
         const res = await api.get(
-            `/social-accounts/${audioAccountId}/audio/${encodeURIComponent(audioId)}/preview`,
-            { responseType: 'blob' },
+            `/social-accounts/${audioAccountId}/audio/${encodeURIComponent(track.audio_id)}/preview`,
+            {
+                params: track.download_url ? { url: track.download_url } : undefined,
+                responseType: 'blob',
+            },
         );
         if (res.data instanceof Blob && res.data.type.includes('json')) {
             const text = await res.data.text();
@@ -488,18 +491,7 @@ export default function CreatorReelStudio() {
         setPreviewLoadingId(track.audio_id);
         el.pause();
         try {
-            let loaded = false;
-            if (track.download_url) {
-                try {
-                    await loadAudioSrc(track.download_url);
-                    loaded = true;
-                } catch {
-                    loaded = false;
-                }
-            }
-            if (!loaded) {
-                await loadAudioSrc(await fetchAudioPreviewBlob(track.audio_id));
-            }
+            await loadAudioSrc(await fetchAudioPreviewBlob(track));
             if (requestId !== playRequestRef.current) return;
             const durationMs = Number.isFinite(el.duration)
                 ? Math.round(el.duration * 1000)
